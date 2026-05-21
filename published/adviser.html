@@ -316,6 +316,21 @@ pre code {
   font-weight: 720;
 }
 
+.syntax-gherkin-keyword {
+  color: #8fd6ff;
+  font-weight: 780;
+}
+
+.syntax-tag {
+  color: #ffb0a0;
+  font-weight: 720;
+}
+
+.syntax-comment {
+  color: #7f93a3;
+  font-style: italic;
+}
+
 .syntax-punctuation {
   color: #b9c7d4;
 }
@@ -2083,10 +2098,10 @@ s3://&lt;bucket&gt;/dashboard-export/report_period=2026-05/team=.../part-....par
 <p>Example link:</p>
 <figure class="code-block"><figcaption>text</figcaption><pre><code class="language-text">https://finops-response.internal.company/report/monthly-2026-05/issue/finops-001234</code></pre></figure>
 <p>Application authorisation rule:</p>
-<figure class="code-block"><figcaption>text</figcaption><pre><code class="language-text">User is authenticated
-AND user belongs to assigned team OR FinOps admin group
-AND issue is open
-AND requested action is allowed for user role</code></pre></figure>
+<figure class="code-block"><figcaption>gherkin</figcaption><pre><code class="language-gherkin"><span class="syntax-gherkin-keyword">User</span> is authenticated
+<span class="syntax-gherkin-keyword">AND</span> user belongs to assigned team OR FinOps admin group
+<span class="syntax-gherkin-keyword">AND</span> issue is open
+<span class="syntax-gherkin-keyword">AND</span> requested action is allowed for user role</code></pre></figure>
 <h2 id="6-application-data-store">6. Application Data Store</h2>
 <h3 id="preferred-design">Preferred Design</h3>
 <div class="table-wrap"><table>

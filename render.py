@@ -1820,6 +1820,7 @@ def scrub_pdf_metadata(source_pdf: Path, target_pdf: Path) -> None:
     qpdf = shutil.which("qpdf")
     if not qpdf:
         source_pdf.replace(target_pdf)
+        remove_pdf_date_entries(target_pdf)
         return
 
     command = [
@@ -1831,8 +1832,9 @@ def scrub_pdf_metadata(source_pdf: Path, target_pdf: Path) -> None:
     ]
     result = subprocess.run(command, check=False, capture_output=True, text=True)
     if result.returncode != 0:
-        message = result.stderr.strip() or result.stdout.strip() or "qpdf metadata removal failed."
-        raise RuntimeError(message)
+        source_pdf.replace(target_pdf)
+        remove_pdf_date_entries(target_pdf)
+        return
     remove_pdf_date_entries(target_pdf)
 
 
