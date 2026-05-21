@@ -1,0 +1,81 @@
+name: Build and Publish Whitepaper
+
+on:
+  push:
+    branches:
+      - master
+    paths-ignore:
+      - "published/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-whitepaper-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Set up Chrome
+        id: setup-chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Install system verification tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils qpdf
+
+      - name: Install Mermaid dependencies
+        run: npm ci
+
+      - name: Compile renderer
+        run: python3 -m py_compile render.py
+
+      - name: Build HTML and PDF
+        env:
+          CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
+          CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+        run: ./render.py
+
+      - name: Verify generated outputs
+        run: |
+          test -s dist/adviser.html
+          test -s dist/adviser.pdf
+          pdfinfo dist/adviser.pdf | grep -q "Pages:"
+          ! pdfinfo dist/adviser.pdf | grep -E "CreationDate|ModDate"
+          ! pdftotext dist/adviser.pdf - | grep -E "file:///|adviser.html|[0-9]{1,2}/[0-9]{1,2}/[0-9]{2}, [0-9]{1,2}:[0-9]{2}"
+          grep -q "syntax-key" dist/adviser.html
+          grep -q "flowchart-v2" dist/adviser.html
+
+      - name: Copy outputs to published directory
+        run: |
+          mkdir -p published
+          cp dist/adviser.html published/adviser.html
+          cp dist/adviser.pdf published/adviser.pdf
+
+      - name: Commit and push published outputs
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add published/adviser.html published/adviser.pdf
+          if git diff --cached --quiet; then
+            echo "No published output changes to commit."
+            exit 0
+          fi
+          git commit -m "Publish rendered whitepaper"
+          git push

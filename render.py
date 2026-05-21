@@ -10,12 +10,14 @@ code blocks, lists, and GitHub-style tables.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urljoin
@@ -30,6 +32,19 @@ class Heading:
     level: int
     text: str
     slug: str
+
+
+@dataclass
+class MermaidNode:
+    node_id: str
+    label: str
+
+
+@dataclass
+class MermaidEdge:
+    source: str
+    target: str
+    label: str = ""
 
 
 def slugify(text: str, used: dict[str, int]) -> str:
@@ -125,6 +140,604 @@ def render_table(lines: list[str]) -> str:
     return "\n".join(out)
 
 
+def highlight_code(code: str, language: str) -> str:
+    if language.lower() != "json":
+        return html.escape(code)
+    return highlight_json(code)
+
+
+def highlight_json(code: str) -> str:
+    token_re = re.compile(
+        r'(?P<string>"(?:\\.|[^"\\])*")'
+        r"|(?P<number>-?\b(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?\b)"
+        r"|(?P<literal>\b(?:true|false|null)\b)"
+        r"|(?P<punct>[{}\[\],:])"
+    )
+    parts: list[str] = []
+    last = 0
+
+    for match in token_re.finditer(code):
+        parts.append(html.escape(code[last : match.start()]))
+        token = match.group(0)
+        if match.lastgroup == "string":
+            after = code[match.end() :]
+            class_name = "syntax-key" if re.match(r"\s*:", after) else "syntax-string"
+        elif match.lastgroup == "number":
+            class_name = "syntax-number"
+        elif match.lastgroup == "literal":
+            class_name = "syntax-literal"
+        else:
+            class_name = "syntax-punctuation"
+        parts.append(f'<span class="{class_name}">{html.escape(token)}</span>')
+        last = match.end()
+
+    parts.append(html.escape(code[last:]))
+    return "".join(parts)
+
+
+def parse_mermaid_node(expression: str, nodes: dict[str, MermaidNode]) -> str:
+    expression = expression.strip().rstrip(";")
+    match = re.fullmatch(r"([A-Za-z][A-Za-z0-9_]*)\s*\[\s*\"(.+)\"\s*\]", expression)
+    if match:
+        node_id, label = match.groups()
+        nodes[node_id] = MermaidNode(node_id, label)
+        return node_id
+    match = re.fullmatch(r"([A-Za-z][A-Za-z0-9_]*)", expression)
+    if match:
+        node_id = match.group(1)
+        nodes.setdefault(node_id, MermaidNode(node_id, node_id))
+        return node_id
+    node_id = f"node{len(nodes) + 1}"
+    nodes[node_id] = MermaidNode(node_id, expression.strip('"'))
+    return node_id
+
+
+def parse_mermaid(source: str) -> tuple[dict[str, MermaidNode], list[MermaidEdge]]:
+    nodes: dict[str, MermaidNode] = {}
+    edges: list[MermaidEdge] = []
+
+    for raw_line in source.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("%%") or line.startswith("flowchart"):
+            continue
+        if "-->" not in line:
+            parse_mermaid_node(line, nodes)
+            continue
+
+        parts = re.split(r"\s*-->(?:\|\"([^\"]+)\"\|)?\s*", line)
+        previous = parse_mermaid_node(parts[0], nodes)
+        index = 1
+        while index < len(parts):
+            label = parts[index] or ""
+            target_expression = parts[index + 1] if index + 1 < len(parts) else ""
+            target = parse_mermaid_node(target_expression, nodes)
+            edges.append(MermaidEdge(previous, target, label))
+            previous = target
+            index += 2
+
+    return nodes, edges
+
+
+def mermaid_label_lines(label: str, max_chars: int = 28) -> list[str]:
+    lines: list[str] = []
+    for segment in re.split(r"<br\s*/?>", label):
+        words = html.unescape(segment).split()
+        current: list[str] = []
+        length = 0
+        for word in words:
+            proposed = length + len(word) + (1 if current else 0)
+            if current and proposed > max_chars:
+                lines.append(" ".join(current))
+                current = [word]
+                length = len(word)
+            else:
+                current.append(word)
+                length = proposed
+        if current:
+            lines.append(" ".join(current))
+    return lines or [label]
+
+
+def render_mermaid_svg(source: str) -> str:
+    nodes, edges = parse_mermaid(source)
+    if not nodes:
+        return ""
+
+    indegree = {node_id: 0 for node_id in nodes}
+    children: dict[str, list[str]] = {node_id: [] for node_id in nodes}
+    for edge in edges:
+        indegree[edge.target] = indegree.get(edge.target, 0) + 1
+        children.setdefault(edge.source, []).append(edge.target)
+
+    ranks: dict[str, int] = {node_id: 0 for node_id, count in indegree.items() if count == 0}
+    pending = list(ranks)
+    while pending:
+        current = pending.pop(0)
+        for child in children.get(current, []):
+            next_rank = ranks[current] + 1
+            if next_rank > ranks.get(child, -1):
+                ranks[child] = next_rank
+                pending.append(child)
+    for node_id in nodes:
+        ranks.setdefault(node_id, 0)
+
+    grouped: dict[int, list[str]] = {}
+    for node_id, rank in ranks.items():
+        grouped.setdefault(rank, []).append(node_id)
+
+    node_width = 300
+    min_node_height = 54
+    h_gap = 30
+    v_gap = 24
+    margin = 24
+    row_heights: dict[int, int] = {}
+    label_lines = {node_id: mermaid_label_lines(node.label, max_chars=36) for node_id, node in nodes.items()}
+
+    for rank, node_ids in grouped.items():
+        row_heights[rank] = max(min_node_height, max(30 + len(label_lines[node_id]) * 15 for node_id in node_ids))
+
+    max_rank_width = max(len(node_ids) * node_width + (len(node_ids) - 1) * h_gap for node_ids in grouped.values())
+    width = max(620, max_rank_width + margin * 2)
+    y_by_rank: dict[int, int] = {}
+    y = margin
+    for rank in sorted(grouped):
+        y_by_rank[rank] = y
+        y += row_heights[rank] + v_gap
+    height = y - v_gap + margin
+
+    positions: dict[str, tuple[float, float, int, int]] = {}
+    for rank in sorted(grouped):
+        node_ids = grouped[rank]
+        row_width = len(node_ids) * node_width + (len(node_ids) - 1) * h_gap
+        x = (width - row_width) / 2
+        for node_id in node_ids:
+            node_height = row_heights[rank]
+            positions[node_id] = (x, y_by_rank[rank], node_width, node_height)
+            x += node_width + h_gap
+
+    svg: list[str] = [
+        f'<svg class="mermaid-svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-label="Mermaid diagram" xmlns="http://www.w3.org/2000/svg">',
+        "<defs>",
+        '<marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">',
+        '<path d="M0,0 L0,6 L9,3 z" fill="#b83218" />',
+        "</marker>",
+        "</defs>",
+    ]
+
+    for edge in edges:
+        sx, sy, sw, sh = positions[edge.source]
+        tx, ty, tw, _ = positions[edge.target]
+        start_x = sx + sw / 2
+        start_y = sy + sh
+        end_x = tx + tw / 2
+        end_y = ty
+        mid_y = start_y + max(20, (end_y - start_y) / 2)
+        path = f"M {start_x:.1f} {start_y:.1f} C {start_x:.1f} {mid_y:.1f}, {end_x:.1f} {mid_y:.1f}, {end_x:.1f} {end_y - 8:.1f}"
+        svg.append(f'<path class="mermaid-edge" d="{path}" marker-end="url(#arrow)" />')
+        if edge.label:
+            label_x = (start_x + end_x) / 2
+            label_y = mid_y - 7
+            svg.append(f'<text class="mermaid-edge-label" x="{label_x:.1f}" y="{label_y:.1f}" text-anchor="middle">{html.escape(edge.label)}</text>')
+
+    for node_id, node in nodes.items():
+        x, y_pos, w, h = positions[node_id]
+        svg.append(f'<rect class="mermaid-node" x="{x:.1f}" y="{y_pos:.1f}" width="{w}" height="{h}" rx="8" />')
+        lines = label_lines[node_id]
+        text_y = y_pos + h / 2 - ((len(lines) - 1) * 8)
+        svg.append(f'<text class="mermaid-node-label" x="{x + w / 2:.1f}" y="{text_y:.1f}" text-anchor="middle">')
+        for index, line in enumerate(lines):
+            dy = 0 if index == 0 else 17
+            svg.append(f'<tspan x="{x + w / 2:.1f}" dy="{dy}">{html.escape(line)}</tspan>')
+        svg.append("</text>")
+
+    svg.append("</svg>")
+    return "\n".join(svg)
+
+
+def mermaid_chain_order(nodes: dict[str, MermaidNode], edges: list[MermaidEdge]) -> list[str] | None:
+    if len(edges) != len(nodes) - 1:
+        return None
+
+    outgoing: dict[str, list[str]] = {node_id: [] for node_id in nodes}
+    incoming: dict[str, list[str]] = {node_id: [] for node_id in nodes}
+    for edge in edges:
+        outgoing[edge.source].append(edge.target)
+        incoming[edge.target].append(edge.source)
+
+    starts = [node_id for node_id, sources in incoming.items() if not sources]
+    if len(starts) != 1:
+        return None
+    if any(len(targets) > 1 for targets in outgoing.values()):
+        return None
+    if any(len(sources) > 1 for sources in incoming.values()):
+        return None
+
+    order = [starts[0]]
+    seen = {starts[0]}
+    current = starts[0]
+    while outgoing[current]:
+        current = outgoing[current][0]
+        if current in seen:
+            return None
+        seen.add(current)
+        order.append(current)
+
+    return order if len(order) == len(nodes) else None
+
+
+def render_mermaid_chain_svg(nodes: dict[str, MermaidNode], edges: list[MermaidEdge], order: list[str]) -> str:
+    columns = 2
+    node_width = 270
+    min_node_height = 58
+    h_gap = 42
+    v_gap = 34
+    margin = 24
+    label_lines = {node_id: mermaid_label_lines(nodes[node_id].label, max_chars=30) for node_id in order}
+    row_count = (len(order) + columns - 1) // columns
+    width = margin * 2 + columns * node_width + (columns - 1) * h_gap
+
+    positions: dict[str, tuple[float, float, int, int]] = {}
+    row_heights: list[int] = []
+    for row in range(row_count):
+        row_ids = order[row * columns : (row + 1) * columns]
+        row_heights.append(max(min_node_height, max(32 + len(label_lines[node_id]) * 15 for node_id in row_ids)))
+
+    y = margin
+    for row in range(row_count):
+        row_ids = order[row * columns : (row + 1) * columns]
+        row_width = len(row_ids) * node_width + (len(row_ids) - 1) * h_gap
+        x = (width - row_width) / 2
+        for node_id in row_ids:
+            positions[node_id] = (x, y, node_width, row_heights[row])
+            x += node_width + h_gap
+        y += row_heights[row] + v_gap
+    height = y - v_gap + margin
+
+    edge_lookup = {(edge.source, edge.target): edge for edge in edges}
+    svg: list[str] = [
+        f'<svg class="mermaid-svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-label="Mermaid diagram" xmlns="http://www.w3.org/2000/svg">',
+        "<defs>",
+        '<marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">',
+        '<path d="M0,0 L0,6 L9,3 z" fill="#b83218" />',
+        "</marker>",
+        "</defs>",
+    ]
+
+    for index, source in enumerate(order[:-1]):
+        target = order[index + 1]
+        edge = edge_lookup.get((source, target), MermaidEdge(source, target))
+        sx, sy, sw, sh = positions[source]
+        tx, ty, tw, th = positions[target]
+        source_row = index // columns
+        target_row = (index + 1) // columns
+        source_col = index % columns
+        target_col = (index + 1) % columns
+
+        if source_row == target_row:
+            start_x = sx + sw
+            start_y = sy + sh / 2
+            end_x = tx - 8
+            end_y = ty + th / 2
+            path = f"M {start_x:.1f} {start_y:.1f} L {end_x:.1f} {end_y:.1f}"
+            label_x = (start_x + end_x) / 2
+            label_y = start_y - 8
+        elif source_col == columns - 1:
+            start_x = sx + sw / 2
+            start_y = sy + sh
+            end_x = tx + tw / 2
+            end_y = ty - 8
+            mid_y = start_y + (end_y - start_y) / 2
+            path = f"M {start_x:.1f} {start_y:.1f} C {start_x:.1f} {mid_y:.1f}, {end_x:.1f} {mid_y:.1f}, {end_x:.1f} {end_y:.1f}"
+            label_x = (start_x + end_x) / 2
+            label_y = mid_y - 8
+        else:
+            start_x = sx + sw
+            start_y = sy + sh / 2
+            end_x = tx - 8
+            end_y = ty + th / 2
+            path = f"M {start_x:.1f} {start_y:.1f} L {end_x:.1f} {end_y:.1f}"
+            label_x = (start_x + end_x) / 2
+            label_y = start_y - 8
+
+        svg.append(f'<path class="mermaid-edge" d="{path}" marker-end="url(#arrow)" />')
+        if edge.label:
+            svg.append(f'<text class="mermaid-edge-label" x="{label_x:.1f}" y="{label_y:.1f}" text-anchor="middle">{html.escape(edge.label)}</text>')
+
+    for node_id in order:
+        x, y_pos, w, h = positions[node_id]
+        svg.append(f'<rect class="mermaid-node" x="{x:.1f}" y="{y_pos:.1f}" width="{w}" height="{h}" rx="8" />')
+        lines = label_lines[node_id]
+        text_y = y_pos + h / 2 - ((len(lines) - 1) * 8)
+        svg.append(f'<text class="mermaid-node-label" x="{x + w / 2:.1f}" y="{text_y:.1f}" text-anchor="middle">')
+        for line_index, line in enumerate(lines):
+            dy = 0 if line_index == 0 else 16
+            svg.append(f'<tspan x="{x + w / 2:.1f}" dy="{dy}">{html.escape(line)}</tspan>')
+        svg.append("</text>")
+
+    svg.append("</svg>")
+    return "\n".join(svg)
+
+
+def render_mermaid_block(source: str) -> str:
+    svg = render_mermaid_with_mermaid_js(source)
+    escaped_source = html.escape(source)
+    return (
+        '<figure class="mermaid-diagram">'
+        f"{svg}"
+        "<details>"
+        "<summary>Mermaid source</summary>"
+        f"<pre><code>{escaped_source}</code></pre>"
+        "</details>"
+        "</figure>"
+    )
+
+
+def find_mermaid_cli() -> str | None:
+    local = Path("node_modules/.bin/mmdc")
+    if local.exists():
+        return str(local)
+    return shutil.which("mmdc")
+
+
+def render_mermaid_with_mermaid_js(source: str) -> str:
+    mmdc = find_mermaid_cli()
+    if not mmdc:
+        raise RuntimeError("Mermaid CLI is not installed. Run `npm install` before rendering Mermaid diagrams.")
+
+    with tempfile.TemporaryDirectory(prefix="finops-mermaid-") as tmp:
+        tmp_dir = Path(tmp)
+        input_path = tmp_dir / "diagram.mmd"
+        output_path = tmp_dir / "diagram.svg"
+        mermaid_config = tmp_dir / "mermaid-config.json"
+        puppeteer_config = tmp_dir / "puppeteer-config.json"
+
+        input_path.write_text(source, encoding="utf-8")
+        mermaid_config.write_text(
+            """{
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif",
+    "primaryColor": "#ffffff",
+    "primaryTextColor": "#0d3448",
+    "primaryBorderColor": "#f2b199",
+    "lineColor": "#b83218",
+    "secondaryColor": "#fff0e8",
+    "tertiaryColor": "#f7fbfc",
+    "clusterBkg": "#f7fbfc",
+    "clusterBorder": "#f2b199",
+    "edgeLabelBackground": "#ffffff"
+  },
+  "flowchart": {
+    "curve": "basis",
+    "htmlLabels": true,
+    "nodeSpacing": 48,
+    "rankSpacing": 54
+  }
+}
+""",
+            encoding="utf-8",
+        )
+        puppeteer_config.write_text(
+            f"""{{
+  "executablePath": "{find_chromium(None) or '/usr/bin/chromium'}",
+  "args": ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"]
+}}
+""",
+            encoding="utf-8",
+        )
+        command = [
+            mmdc,
+            "--input",
+            str(input_path),
+            "--output",
+            str(output_path),
+            "--configFile",
+            str(mermaid_config),
+            "--puppeteerConfigFile",
+            str(puppeteer_config),
+            "--backgroundColor",
+            "transparent",
+            "--svgId",
+            "mermaid-" + hashlib.sha1(source.encode("utf-8")).hexdigest()[:12],
+        ]
+        result = subprocess.run(command, check=False, capture_output=True, text=True)
+        if result.returncode != 0:
+            message = result.stderr.strip() or result.stdout.strip() or "Mermaid CLI failed."
+            raise RuntimeError(message)
+        svg = output_path.read_text(encoding="utf-8")
+        if 'class="' in svg[:300]:
+            svg = re.sub(r'<svg([^>]*?)class="([^"]*)"', r'<svg\1class="mermaid-svg \2"', svg, count=1)
+        else:
+            svg = svg.replace("<svg ", '<svg class="mermaid-svg" ', 1)
+        return svg
+
+
+def parse_conversation(source: str) -> list[tuple[str, str]]:
+    turns: list[tuple[str, str]] = []
+    current_speaker = ""
+    current_lines: list[str] = []
+
+    for line in source.splitlines():
+        speaker_match = re.fullmatch(r"(AI|User):", line.strip())
+        if speaker_match:
+            if current_speaker:
+                turns.append((current_speaker, "\n".join(current_lines).strip()))
+            current_speaker = speaker_match.group(1)
+            current_lines = []
+        else:
+            current_lines.append(line)
+
+    if current_speaker:
+        turns.append((current_speaker, "\n".join(current_lines).strip()))
+    return turns
+
+
+def conversation_lines(text: str, max_chars: int = 52, max_lines: int = 7) -> list[str]:
+    normalized = re.sub(r"\n\s*-\s*", "\n- ", text.strip())
+    lines: list[str] = []
+    for paragraph in normalized.splitlines():
+        paragraph = paragraph.strip()
+        if not paragraph:
+            continue
+        words = paragraph.split()
+        current: list[str] = []
+        length = 0
+        for word in words:
+            proposed = length + len(word) + (1 if current else 0)
+            if current and proposed > max_chars:
+                lines.append(" ".join(current))
+                current = [word]
+                length = len(word)
+            else:
+                current.append(word)
+                length = proposed
+        if current:
+            lines.append(" ".join(current))
+
+    if len(lines) > max_lines:
+        return lines[: max_lines - 1] + ["..."]
+    return lines or [""]
+
+
+def render_conversation_svg(source: str) -> str:
+    turns = parse_conversation(source)
+    if not turns:
+        return ""
+
+    width = 900
+    margin = 28
+    bubble_width = 610
+    avatar_size = 44
+    gap = 20
+    y = margin
+    bubbles: list[tuple[str, list[str], float, float, int]] = []
+
+    for speaker, text in turns:
+        lines = conversation_lines(text)
+        height = max(70, 42 + len(lines) * 17)
+        x = margin + avatar_size + 14 if speaker == "AI" else width - margin - avatar_size - 14 - bubble_width
+        bubbles.append((speaker, lines, x, y, height))
+        y += height + gap
+
+    height = y - gap + margin
+    svg: list[str] = [
+        f'<figure class="conversation-diagram"><svg class="conversation-svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-label="Example user flow conversation" xmlns="http://www.w3.org/2000/svg">',
+        '<rect class="conversation-bg" x="1" y="1" width="898" height="' + str(height - 2) + '" rx="14" />',
+    ]
+
+    for speaker, lines, x, y_pos, bubble_height in bubbles:
+        is_ai = speaker == "AI"
+        avatar_x = margin if is_ai else width - margin - avatar_size
+        avatar_fill = "#165c7d" if is_ai else "#e4572e"
+        bubble_class = "bubble-ai" if is_ai else "bubble-user"
+        text_x = x + 22
+        text_y = y_pos + 32
+        tail = (
+            f"M {x:.1f} {y_pos + 28:.1f} L {x - 12:.1f} {y_pos + 38:.1f} L {x:.1f} {y_pos + 48:.1f} Z"
+            if is_ai
+            else f"M {x + bubble_width:.1f} {y_pos + 28:.1f} L {x + bubble_width + 12:.1f} {y_pos + 38:.1f} L {x + bubble_width:.1f} {y_pos + 48:.1f} Z"
+        )
+        svg.append(f'<circle cx="{avatar_x + avatar_size / 2:.1f}" cy="{y_pos + 34:.1f}" r="{avatar_size / 2:.1f}" fill="{avatar_fill}" />')
+        svg.append(f'<text class="avatar-label" x="{avatar_x + avatar_size / 2:.1f}" y="{y_pos + 40:.1f}" text-anchor="middle">{speaker}</text>')
+        svg.append(f'<path class="{bubble_class}" d="{tail}" />')
+        svg.append(f'<rect class="{bubble_class}" x="{x:.1f}" y="{y_pos:.1f}" width="{bubble_width}" height="{bubble_height}" rx="14" />')
+        for index, line in enumerate(lines):
+            svg.append(f'<text class="conversation-text" x="{text_x:.1f}" y="{text_y + index * 17:.1f}">{html.escape(line)}</text>')
+
+    svg.append("</svg></figure>")
+    return "\n".join(svg)
+
+
+def render_security_architecture_svg(source: str) -> str:
+    width = 1180
+    height = 760
+
+    def node(x: int, y: int, w: int, h: int, title: str, subtitle: str = "", class_name: str = "arch-node") -> str:
+        title_y = y + 28 if subtitle else y + h / 2 + 5
+        parts = [f'<rect class="{class_name}" x="{x}" y="{y}" width="{w}" height="{h}" rx="12" />']
+        parts.append(f'<text class="arch-title" x="{x + w / 2}" y="{title_y:.1f}" text-anchor="middle">{html.escape(title)}</text>')
+        if subtitle:
+            for index, line in enumerate(mermaid_label_lines(subtitle, max_chars=24)):
+                parts.append(f'<text class="arch-subtitle" x="{x + w / 2}" y="{y + 50 + index * 15}" text-anchor="middle">{html.escape(line)}</text>')
+        return "\n".join(parts)
+
+    def database(x: int, y: int, w: int, h: int, title: str, subtitle: str = "") -> str:
+        parts = [
+            f'<path class="arch-db" d="M{x},{y + 16} C{x},{y - 5} {x + w},{y - 5} {x + w},{y + 16} L{x + w},{y + h - 16} C{x + w},{y + h + 5} {x},{y + h + 5} {x},{y + h - 16} Z" />',
+            f'<ellipse class="arch-db-top" cx="{x + w / 2}" cy="{y + 16}" rx="{w / 2}" ry="16" />',
+            f'<text class="arch-title" x="{x + w / 2}" y="{y + 45}" text-anchor="middle">{html.escape(title)}</text>',
+        ]
+        if subtitle:
+            for index, line in enumerate(mermaid_label_lines(subtitle, max_chars=25)):
+                parts.append(f'<text class="arch-subtitle" x="{x + w / 2}" y="{y + 68 + index * 15}" text-anchor="middle">{html.escape(line)}</text>')
+        return "\n".join(parts)
+
+    def arrow(
+        x1: int,
+        y1: int,
+        x2: int,
+        y2: int,
+        label: str,
+        bend: int = 0,
+        label_x: int | None = None,
+        label_y: int | None = None,
+    ) -> str:
+        if bend:
+            mid_x = (x1 + x2) / 2
+            path = f"M{x1},{y1} C{mid_x},{y1 + bend} {mid_x},{y2 - bend} {x2},{y2}"
+            auto_label_x = mid_x
+            auto_label_y = (y1 + y2) / 2 - 8
+        else:
+            path = f"M{x1},{y1} L{x2},{y2}"
+            auto_label_x = (x1 + x2) / 2
+            auto_label_y = (y1 + y2) / 2 - 8
+        label_x = label_x if label_x is not None else int(auto_label_x)
+        label_y = label_y if label_y is not None else int(auto_label_y)
+        label_width = max(70, len(label) * 6 + 14)
+        return (
+            f'<path class="arch-arrow" d="{path}" marker-end="url(#arch-arrow)" />'
+            f'<rect class="arch-label-bg" x="{label_x - label_width / 2:.1f}" y="{label_y - 14:.1f}" width="{label_width:.1f}" height="20" rx="5" />'
+            f'<text class="arch-label" x="{label_x:.1f}" y="{label_y:.1f}" text-anchor="middle">{html.escape(label)}</text>'
+        )
+
+    return f"""
+<figure class="architecture-diagram">
+<svg class="architecture-svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-label="Security-centred architecture view" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arch-arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#b83218" />
+    </marker>
+  </defs>
+  <rect class="arch-bg" x="1" y="1" width="1178" height="758" rx="18" />
+  <rect class="arch-zone arch-zone-app" x="240" y="72" width="270" height="610" rx="16" />
+  <text class="arch-zone-title" x="375" y="86" text-anchor="middle">Application Boundary</text>
+  <rect class="arch-zone arch-zone-data" x="900" y="72" width="230" height="610" rx="16" />
+  <text class="arch-zone-title" x="1015" y="86" text-anchor="middle">S3-backed Storage</text>
+
+  {node(48, 362, 130, 72, "User", "enterprise SSO", "arch-node arch-user")}
+  {node(300, 338, 150, 88, "Internal Web App / API", "authz, validation, write control", "arch-node arch-app")}
+  {node(565, 110, 150, 78, "Amazon Bedrock Runtime", "approved model invocation", "arch-node arch-ai")}
+  {node(770, 110, 150, 78, "Guardrail Boundary", "model constrained; no direct writes", "arch-node arch-guardrail")}
+
+  {database(930, 180, 170, 88, "S3 Case Files", "narrow issue context")}
+  {database(930, 320, 170, 88, "S3 Response Store", "validated state")}
+  {database(930, 460, 170, 88, "S3 Dashboard Export", "approved prefix")}
+  {database(930, 600, 170, 88, "S3 Audit Logs", "views, submissions, events")}
+  {node(300, 555, 150, 72, "Technology Catalogue", "read assignment metadata", "arch-node arch-catalogue")}
+
+  {arrow(178, 398, 300, 382, "SSO-authenticated HTTPS", 0, 240, 370)}
+  {arrow(450, 356, 930, 222, "read S3 case context", -38, 760, 270)}
+  {arrow(450, 376, 930, 362, "write response state", 0, 695, 342)}
+  {arrow(450, 396, 930, 502, "publish dashboard export", 42, 678, 520)}
+  {arrow(430, 426, 930, 642, "append audit events", 70, 710, 682)}
+  {arrow(375, 555, 375, 426, "read metadata", 0, 445, 500)}
+  {arrow(450, 348, 565, 149, "invoke approved model", -26, 526, 245)}
+  {arrow(715, 149, 770, 149, "guardrails apply", 0, 742, 103)}
+</svg>
+</figure>
+"""
+
+
 def parse_markdown(markdown: str) -> tuple[str, list[Heading], str]:
     lines = markdown.splitlines()
     used_slugs: dict[str, int] = {}
@@ -159,10 +772,23 @@ def parse_markdown(markdown: str) -> tuple[str, list[Heading], str]:
             while i < len(lines) and not lines[i].strip().startswith("```"):
                 code_lines.append(lines[i])
                 i += 1
+            code = chr(10).join(code_lines)
+            if language == "mermaid":
+                blocks.append(render_mermaid_block(code))
+                i += 1
+                continue
+            if language == "conversation":
+                blocks.append(render_conversation_svg(code))
+                i += 1
+                continue
+            if language == "security-architecture":
+                blocks.append(render_security_architecture_svg(code))
+                i += 1
+                continue
             blocks.append(
                 '<figure class="code-block">'
                 f'<figcaption>{html.escape(language)}</figcaption>'
-                f'<pre><code>{html.escape(chr(10).join(code_lines))}</code></pre>'
+                f'<pre><code class="language-{html.escape(language)}">{highlight_code(code, language)}</code></pre>'
                 "</figure>"
             )
             i += 1
@@ -344,16 +970,43 @@ body {
   align-self: start;
   position: sticky;
   top: 24px;
-  padding-right: 22px;
+  max-height: calc(100vh - 48px);
+  padding: 18px 18px 18px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-line) transparent;
   border-right: 1px solid var(--line);
 }
 
+.toc::-webkit-scrollbar {
+  width: 8px;
+}
+
+.toc::-webkit-scrollbar-thumb {
+  background: var(--accent-line);
+  border-radius: 999px;
+}
+
+.toc::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .toc h2 {
-  margin: 0 0 14px;
-  color: var(--accent-strong);
-  font-size: 0.82rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px;
+  color: var(--brand-dark);
+  font-size: 1.05rem;
+  letter-spacing: 0;
+}
+
+.toc h2::before {
+  content: "";
+  width: 28px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), #ff8a3d);
 }
 
 .toc ol {
@@ -368,19 +1021,34 @@ body {
 
 .toc a {
   display: block;
-  padding: 5px 0;
+  margin: 0 0 4px;
+  padding: 7px 10px;
+  border-left: 3px solid transparent;
   color: var(--muted);
-  font-size: 0.88rem;
-  line-height: 1.35;
+  background: transparent;
+  border-radius: 0 5px 5px 0;
+  font-size: 0.86rem;
+  line-height: 1.28;
   text-decoration: none;
 }
 
-.toc .toc-subitem a {
-  padding-left: 13px;
-  font-size: 0.82rem;
+.toc .toc-item a {
+  font-weight: 680;
+  color: #344253;
 }
 
-.toc a:hover { color: var(--accent-strong); }
+.toc .toc-subitem a {
+  margin-left: 10px;
+  padding: 5px 8px;
+  color: var(--muted);
+  font-size: 0.79rem;
+}
+
+.toc a:hover {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
 
 main {
   min-width: 0;
@@ -491,6 +1159,260 @@ pre code {
   padding: 0;
 }
 
+.syntax-key {
+  color: #8fd6ff;
+}
+
+.syntax-string {
+  color: #ffd082;
+}
+
+.syntax-number {
+  color: #9de8b6;
+}
+
+.syntax-literal {
+  color: #ffb0a0;
+  font-weight: 720;
+}
+
+.syntax-punctuation {
+  color: #b9c7d4;
+}
+
+.mermaid-diagram {
+  margin: 1.45rem 0 1.7rem;
+  padding: 16px;
+  overflow-x: auto;
+  background: linear-gradient(180deg, #fffaf7, #f7fbfc);
+  border: 1px solid var(--accent-line);
+  box-shadow: 0 10px 28px rgba(25, 38, 52, 0.08);
+  break-inside: avoid;
+}
+
+.mermaid-svg {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 760px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.mermaid-node {
+  fill: #ffffff;
+  stroke: var(--accent-line);
+  stroke-width: 1.4;
+  filter: drop-shadow(0 5px 12px rgba(25, 38, 52, 0.12));
+}
+
+.mermaid-node-label {
+  fill: var(--brand-dark);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.mermaid-edge {
+  fill: none;
+  stroke: var(--accent-strong);
+  stroke-width: 2.2;
+}
+
+.mermaid-edge-label {
+  fill: var(--accent-strong);
+  paint-order: stroke;
+  stroke: #fffaf7;
+  stroke-width: 5;
+  stroke-linejoin: round;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.mermaid-diagram details {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.mermaid-diagram summary {
+  cursor: pointer;
+  color: var(--accent-strong);
+  font-weight: 720;
+}
+
+.mermaid-diagram details pre {
+  margin-top: 8px;
+  max-height: 240px;
+  background: var(--code-bg);
+  color: #eef7fb;
+  border: 1px solid var(--code-line);
+}
+
+.conversation-diagram {
+  margin: 1.45rem 0 1.75rem;
+  overflow-x: auto;
+  break-inside: avoid;
+}
+
+.conversation-svg {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.conversation-bg {
+  fill: #f7fbfc;
+  stroke: var(--accent-line);
+  stroke-width: 1.5;
+}
+
+.bubble-ai {
+  fill: #ffffff;
+  stroke: #bfd3dd;
+  stroke-width: 1.3;
+}
+
+.bubble-user {
+  fill: var(--accent-soft);
+  stroke: var(--accent-line);
+  stroke-width: 1.3;
+}
+
+.avatar-label {
+  fill: #ffffff;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.conversation-text {
+  fill: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 560;
+}
+
+.architecture-diagram {
+  margin: 1.45rem 0 1.75rem;
+  overflow-x: auto;
+  break-inside: avoid;
+}
+
+.architecture-svg {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.arch-bg {
+  fill: #f7fbfc;
+  stroke: var(--accent-line);
+  stroke-width: 1.5;
+}
+
+.arch-zone {
+  fill: rgba(255, 255, 255, 0.64);
+  stroke-width: 1.2;
+  stroke-dasharray: 6 5;
+}
+
+.arch-zone-app {
+  stroke: #9fbdca;
+}
+
+.arch-zone-data {
+  stroke: var(--accent-line);
+}
+
+.arch-zone-title {
+  fill: var(--muted);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.arch-node {
+  fill: #ffffff;
+  stroke: #bfd3dd;
+  stroke-width: 1.4;
+  filter: drop-shadow(0 5px 12px rgba(25, 38, 52, 0.10));
+}
+
+.arch-user {
+  stroke: var(--accent-line);
+}
+
+.arch-app {
+  stroke: var(--brand);
+  stroke-width: 1.8;
+}
+
+.arch-ai {
+  fill: #eef7fb;
+}
+
+.arch-guardrail {
+  fill: var(--accent-soft);
+  stroke: var(--accent-line);
+}
+
+.arch-catalogue {
+  fill: #fbfdff;
+}
+
+.arch-db {
+  fill: #ffffff;
+  stroke: var(--accent-line);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 5px 12px rgba(25, 38, 52, 0.10));
+}
+
+.arch-db-top {
+  fill: #fff8f4;
+  stroke: var(--accent-line);
+  stroke-width: 1.5;
+}
+
+.arch-title {
+  fill: var(--brand-dark);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 820;
+}
+
+.arch-subtitle {
+  fill: var(--muted);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.arch-arrow {
+  fill: none;
+  stroke: var(--accent-strong);
+  stroke-width: 2;
+}
+
+.arch-label-bg {
+  fill: rgba(255, 255, 255, 0.92);
+  stroke: rgba(242, 177, 153, 0.9);
+  stroke-width: 1;
+}
+
+.arch-label {
+  fill: var(--accent-strong);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 11px;
+  font-weight: 780;
+}
+
 .table-wrap {
   width: 100%;
   margin: 1.2rem 0 1.55rem;
@@ -569,6 +1491,8 @@ tbody tr:nth-child(even) {
 
   .toc {
     position: static;
+    max-height: none;
+    overflow: visible;
     margin: 0 0 30px;
     padding: 0 0 20px;
     border-right: 0;
@@ -626,16 +1550,53 @@ tbody tr:nth-child(even) {
   .toc {
     position: static;
     break-after: page;
+    max-height: none;
+    overflow: visible;
     padding: 0;
     border: 0;
   }
 
   .toc h2 {
-    font-size: 16pt;
+    margin-bottom: 12mm;
+    color: var(--brand-dark);
+    font-size: 18pt;
+  }
+
+  .toc h2::before {
+    width: 34px;
+    height: 4px;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .toc ol {
+    column-count: 2;
+    column-gap: 12mm;
+    column-rule: 1px solid var(--accent-line);
   }
 
   .toc a {
+    margin: 0 0 1.5mm;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
     color: var(--ink);
+    background: transparent;
+    font-size: 9.6pt;
+    line-height: 1.22;
+    break-inside: avoid;
+  }
+
+  .toc .toc-item a {
+    color: var(--brand-dark);
+    font-weight: 720;
+  }
+
+  .toc .toc-subitem a {
+    margin-left: 4mm;
+    padding: 0;
+    color: var(--muted);
+    font-size: 8.4pt;
   }
 
   h2 {
@@ -669,6 +1630,46 @@ tbody tr:nth-child(even) {
   pre {
     white-space: pre-wrap;
     font-size: 8.6pt;
+  }
+
+  .mermaid-diagram {
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .mermaid-svg {
+    width: auto;
+    max-width: 100%;
+    max-height: 168mm;
+  }
+
+  .mermaid-diagram details {
+    display: none;
+  }
+
+  .conversation-diagram {
+    overflow: visible;
+  }
+
+  .conversation-svg {
+    width: auto;
+    max-width: 100%;
+    max-height: 185mm;
+  }
+
+  .architecture-diagram {
+    overflow: visible;
+  }
+
+  .architecture-svg {
+    width: auto;
+    max-width: 100%;
+    max-height: 170mm;
   }
 
   .footer {
@@ -768,6 +1769,10 @@ def remove_pdf_date_entries(pdf_path: Path) -> None:
 def find_chromium(explicit: str | None) -> str | None:
     if explicit:
         return explicit
+    for env_name in ("CHROME_PATH", "CHROME_BIN"):
+        configured = os.environ.get(env_name)
+        if configured:
+            return configured
     for name in ("chromium", "chromium-browser", "google-chrome", "google-chrome-stable"):
         found = shutil.which(name)
         if found:

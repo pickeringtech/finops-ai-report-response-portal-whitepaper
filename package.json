@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "render": "./render.py"
+  },
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^11.4.2"
+  }
+}

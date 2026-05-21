@@ -6,6 +6,9 @@ __pycache__/
 dist/
 *.pdf.raw
 
+# Node dependencies
+node_modules/
+
 # Local agent/session metadata
 .agents/
 .codex/

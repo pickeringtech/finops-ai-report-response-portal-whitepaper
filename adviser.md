@@ -76,49 +76,33 @@ The AI assistant is not a general-purpose chatbot. It is scoped to the specific 
 
 ## High-Level User Journey
 
-```text
-Financial report generated
-    ↓
-Team receives email notification
-    ↓
-Email contains secure deep link to specific report issue
-    ↓
-User opens link and authenticates via SSO
-    ↓
-User enters case-specific chat interface
-    ↓
-AI explains the issue and asks guided questions
-    ↓
-User submits justification, dispute, investigation state, or reassignment request
-    ↓
-Backend validates and stores structured response
-    ↓
-Dashboard export is written to S3
-    ↓
-Dashboarding tooling shows response status and justification
+```mermaid
+flowchart TD
+    report["Financial report generated"]
+    email["Team receives email notification"]
+    link["Email contains secure deep link to specific report issue"]
+    auth["User opens link and authenticates via SSO"]
+    chat["User enters case-specific chat interface"]
+    explain["AI explains the issue and asks guided questions"]
+    submit["User submits justification, dispute, investigation state, or reassignment request"]
+    validate["Backend validates and stores structured response"]
+    export["Dashboard export is written to S3"]
+    dashboard["Dashboarding tooling shows response status and justification"]
+
+    report --> email --> link --> auth --> chat --> explain --> submit --> validate --> export --> dashboard
 ```
 
 ## Security-Centred Architecture View
 
-```text
-User
-  │
-  │ SSO-authenticated HTTPS
-  ▼
-Internal Web App / API
-  │
-  ├── Read specific report issue context
-  ├── Read technology catalogue metadata
-  ├── Invoke approved Bedrock model
-  ├── Write structured response state
-  ├── Write dashboard export to approved S3 prefix
-  └── Write audit logs
-
-Amazon Bedrock
-  └── No direct AWS service access
-      No direct S3 writes
-      No direct catalogue updates
-      No autonomous remediation
+```security-architecture
+User -> Internal Web App / API: SSO-authenticated HTTPS
+Internal Web App / API -> S3 Report Issue Case Files: read narrow case context
+Internal Web App / API -> Technology Catalogue: read assignment metadata
+Internal Web App / API -> Amazon Bedrock Runtime: invoke approved model only
+Internal Web App / API -> S3 Response State Store: write validated response state
+Internal Web App / API -> S3 Dashboard Export: write approved export prefix
+Internal Web App / API -> S3 Audit Logs: write views, submissions, model events
+Amazon Bedrock Runtime -> Guardrail Boundary: no direct AWS writes, no catalogue mutation, no remediation
 ```
 
 ## Key Design Principle
@@ -131,24 +115,25 @@ The backend validates the user, the issue, the requested action, and the final r
 
 The design should be:
 
-```text
-Backend retrieves approved context
-    ↓
-Backend sends narrow prompt to Bedrock
-    ↓
-Bedrock helps draft, explain, or classify
-    ↓
-Backend validates user-confirmed action
-    ↓
-Backend writes approved response
+```mermaid
+flowchart TD
+    context["Backend retrieves approved context"]
+    prompt["Backend sends narrow prompt to Bedrock"]
+    assist["Bedrock helps draft, explain, or classify"]
+    validate["Backend validates user-confirmed action"]
+    write["Backend writes approved response"]
+
+    context --> prompt --> assist --> validate --> write
 ```
 
 It should not be:
 
-```text
-Bedrock Agent receives broad tools
-    ↓
-Bedrock directly updates S3, catalogue, or AWS resources
+```mermaid
+flowchart TD
+    tools["Bedrock Agent receives broad tools"]
+    direct["Bedrock directly updates S3, catalogue, or AWS resources"]
+
+    tools --> direct
 ```
 
 ## Scope of the MVP
@@ -225,7 +210,7 @@ Bedrock directly updates S3, catalogue, or AWS resources
 
 ## Example User Flow
 
-```text
+```conversation
 AI:
 This report item relates to a £18.5k month-on-month increase in EC2 costs for the Checkout API in the Payments product.
 
@@ -270,7 +255,7 @@ The final submit action is handled by deterministic backend logic, not by the mo
 
 ## Example Reassignment Flow
 
-```text
+```conversation
 User:
 This belongs to Data Platform, not us.
 
@@ -296,24 +281,19 @@ Do you want to submit this reassignment request?
 
 ## Recommended Architecture
 
-```text
-FinOps report pipeline
-    ↓
-Report issue case files
-    ↓
-Email notification service
-    ↓
-Authenticated internal web app
-    ↓
-Backend API
-    ↓
-Amazon Bedrock Runtime
-    ↓
-Response state store
-    ↓
-S3 dashboard export
-    ↓
-Dashboarding tooling
+```mermaid
+flowchart TD
+    pipeline["FinOps report pipeline"]
+    cases["Report issue case files"]
+    email["Email notification service"]
+    web["Authenticated internal web app"]
+    api["Backend API"]
+    bedrock["Amazon Bedrock Runtime"]
+    state["Response state store"]
+    export["S3 dashboard export"]
+    dashboard["Dashboarding tooling"]
+
+    pipeline --> cases --> email --> web --> api --> bedrock --> state --> export --> dashboard
 ```
 
 ## Component Responsibilities
