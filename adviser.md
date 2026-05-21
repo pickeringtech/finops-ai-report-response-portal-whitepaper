@@ -659,7 +659,7 @@ https://finops-response.internal.company/report/monthly-2026-05/issue/finops-001
 
 Application authorisation rule:
 
-```text
+```gherkin
 User is authenticated
 AND user belongs to assigned team OR FinOps admin group
 AND issue is open

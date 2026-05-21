@@ -141,9 +141,12 @@ def render_table(lines: list[str]) -> str:
 
 
 def highlight_code(code: str, language: str) -> str:
-    if language.lower() != "json":
-        return html.escape(code)
-    return highlight_json(code)
+    normalized = language.lower()
+    if normalized == "json":
+        return highlight_json(code)
+    if normalized in {"gherkin", "feature"}:
+        return highlight_gherkin(code)
+    return html.escape(code)
 
 
 def highlight_json(code: str) -> str:
@@ -173,6 +176,68 @@ def highlight_json(code: str) -> str:
 
     parts.append(html.escape(code[last:]))
     return "".join(parts)
+
+
+def highlight_gherkin(code: str) -> str:
+    keywords = (
+        "Feature",
+        "Rule",
+        "Background",
+        "Scenario Outline",
+        "Scenario",
+        "Examples",
+        "Given",
+        "When",
+        "Then",
+        "And",
+        "But",
+        "User",
+    )
+    keyword_re = re.compile(rf"^(\s*)({'|'.join(re.escape(keyword) for keyword in keywords)})(\b|:)", re.IGNORECASE)
+    lines: list[str] = []
+
+    for line in code.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith("#"):
+            leading = line[: len(line) - len(stripped)]
+            lines.append(f'{html.escape(leading)}<span class="syntax-comment">{html.escape(stripped)}</span>')
+            continue
+        if stripped.startswith("@"):
+            lines.append(highlight_gherkin_tags(line))
+            continue
+        if stripped.startswith("|"):
+            lines.append(highlight_gherkin_table(line))
+            continue
+
+        escaped = html.escape(line)
+        match = keyword_re.match(line)
+        if match:
+            leading, keyword, suffix = match.groups()
+            start = len(leading)
+            end = start + len(keyword)
+            escaped = (
+                html.escape(line[:start])
+                + f'<span class="syntax-gherkin-keyword">{html.escape(line[start:end])}</span>'
+                + html.escape(line[end:])
+            )
+        escaped = highlight_gherkin_strings(escaped)
+        lines.append(escaped)
+
+    return "\n".join(lines)
+
+
+def highlight_gherkin_tags(line: str) -> str:
+    escaped = html.escape(line)
+    return re.sub(r"(@[\w:-]+)", r'<span class="syntax-tag">\1</span>', escaped)
+
+
+def highlight_gherkin_table(line: str) -> str:
+    escaped = html.escape(line)
+    return re.sub(r"(\|)", r'<span class="syntax-punctuation">\1</span>', escaped)
+
+
+def highlight_gherkin_strings(escaped_line: str) -> str:
+    return re.sub(r"(&quot;.*?&quot;)", r'<span class="syntax-string">\1</span>', escaped_line)
 
 
 def parse_mermaid_node(expression: str, nodes: dict[str, MermaidNode]) -> str:
@@ -1174,6 +1239,21 @@ pre code {
 .syntax-literal {
   color: #ffb0a0;
   font-weight: 720;
+}
+
+.syntax-gherkin-keyword {
+  color: #8fd6ff;
+  font-weight: 780;
+}
+
+.syntax-tag {
+  color: #ffb0a0;
+  font-weight: 720;
+}
+
+.syntax-comment {
+  color: #7f93a3;
+  font-style: italic;
 }
 
 .syntax-punctuation {
