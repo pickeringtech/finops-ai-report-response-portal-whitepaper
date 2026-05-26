@@ -33,20 +33,17 @@ The MVP has one canonical user interface: an authenticated internal web case pag
 
 Email and Teams are notification and entry channels. They are not the system of record and they do not replace the case page for final review.
 
-```text
-Email or Teams notification
-    ↓
-Secure deep link
-    ↓
-Enterprise SSO
-    ↓
-Case-specific web page
-    ↓
-Guided AI-assisted response
-    ↓
-Explicit user confirmation
-    ↓
-Backend writes S3-backed response/export/audit
+```mermaid
+flowchart TD
+    notify["Email or Teams notification"]
+    link["Secure deep link"]
+    sso["Enterprise SSO"]
+    case["Case-specific web page"]
+    assist["Guided AI-assisted response"]
+    confirm["Explicit user confirmation"]
+    write["Backend writes S3-backed response, export, and audit"]
+
+    notify --> link --> sso --> case --> assist --> confirm --> write
 ```
 
 ### Primary Interface: Case Page
@@ -162,14 +159,14 @@ Teams card actions:
 
 The safe pattern is:
 
-```text
-Teams Bot / Adaptive Card
-    ↓
-Authenticated backend API
-    ↓
-Same authorisation and validation as web
-    ↓
-Same S3-backed writes and audit trail
+```mermaid
+flowchart TD
+    teams["Teams Bot / Adaptive Card"]
+    api["Authenticated backend API"]
+    authz["Same authorisation and validation as web"]
+    writes["Same S3-backed writes and audit trail"]
+
+    teams --> api --> authz --> writes
 ```
 
 ## Interface State Model
@@ -202,11 +199,15 @@ The case page should expose state clearly.
 
 The model is not the system of record and does not write to AWS services.
 
-```text
-User confirms action
-Backend validates action
-Backend writes response/export/audit
-Bedrock only assists with explanation, classification, and drafting
+```mermaid
+flowchart TD
+    confirm["User confirms action"]
+    validate["Backend validates action"]
+    write["Backend writes response, export, and audit"]
+    assist["Bedrock only assists with explanation, classification, and drafting"]
+
+    assist -.-> confirm
+    confirm --> validate --> write
 ```
 
 ## Smallest Useful Scope
