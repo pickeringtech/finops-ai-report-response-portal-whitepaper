@@ -713,6 +713,102 @@ def render_conversation_svg(source: str) -> str:
     return "\n".join(svg)
 
 
+def render_visual_overview_svg(source: str) -> str:
+    width = 1320
+    height = 720
+
+    def card(x: int, y: int, w: int, h: int, title: str, body: str, class_name: str = "overview-card") -> str:
+        lines = mermaid_label_lines(body, max_chars=28)
+        parts = [f'<rect class="{class_name}" x="{x}" y="{y}" width="{w}" height="{h}" rx="14" />']
+        parts.append(f'<text class="overview-title" x="{x + 20}" y="{y + 30}">{html.escape(title)}</text>')
+        for index, line in enumerate(lines[:3]):
+            parts.append(f'<text class="overview-body" x="{x + 20}" y="{y + 56 + index * 16}">{html.escape(line)}</text>')
+        return "\n".join(parts)
+
+    def pill(x: int, y: int, text: str, class_name: str = "overview-pill") -> str:
+        width_px = max(92, len(text) * 7 + 28)
+        return (
+            f'<rect class="{class_name}" x="{x}" y="{y}" width="{width_px}" height="30" rx="15" />'
+            f'<text class="overview-pill-text" x="{x + width_px / 2:.1f}" y="{y + 20}" text-anchor="middle">{html.escape(text)}</text>'
+        )
+
+    def arrow(x1: int, y1: int, x2: int, y2: int, label: str = "", label_dx: int = 0, label_dy: int = 0) -> str:
+        label_markup = ""
+        if label:
+            lx = (x1 + x2) / 2 + label_dx
+            ly = (y1 + y2) / 2 - 9 + label_dy
+            label_width = max(80, len(label) * 6 + 22)
+            label_markup = (
+                f'<rect class="overview-arrow-label-bg" x="{lx - label_width / 2:.1f}" y="{ly - 14:.1f}" width="{label_width}" height="20" rx="5" />'
+                f'<text class="overview-arrow-label" x="{lx:.1f}" y="{ly:.1f}" text-anchor="middle">{html.escape(label)}</text>'
+            )
+        return f'<path class="overview-arrow" d="M{x1},{y1} L{x2},{y2}" marker-end="url(#overview-arrow)" />{label_markup}'
+
+    def database(x: int, y: int, w: int, h: int, title: str, body: str) -> str:
+        parts = [
+            f'<path class="overview-db" d="M{x},{y + 18} C{x},{y - 6} {x + w},{y - 6} {x + w},{y + 18} L{x + w},{y + h - 18} C{x + w},{y + h + 6} {x},{y + h + 6} {x},{y + h - 18} Z" />',
+            f'<ellipse class="overview-db-top" cx="{x + w / 2}" cy="{y + 18}" rx="{w / 2}" ry="18" />',
+            f'<text class="overview-title" x="{x + w / 2}" y="{y + 48}" text-anchor="middle">{html.escape(title)}</text>',
+        ]
+        for index, line in enumerate(mermaid_label_lines(body, max_chars=22)[:2]):
+            parts.append(f'<text class="overview-body" x="{x + w / 2}" y="{y + 72 + index * 16}" text-anchor="middle">{html.escape(line)}</text>')
+        return "\n".join(parts)
+
+    return f"""
+<figure class="overview-diagram">
+<svg class="overview-svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}" role="img" aria-label="FinOps Response Portal MVP visual overview" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="overview-arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#b83218" />
+    </marker>
+  </defs>
+  <rect class="overview-bg" x="1" y="1" width="1318" height="718" rx="18" />
+
+  <text class="overview-kicker" x="42" y="48">MVP response loop</text>
+  <text class="overview-heading" x="42" y="82">From notification to dashboard-ready FinOps response</text>
+
+  {card(42, 128, 230, 146, "1. Entry", "Email or Teams asks the owner to respond.", "overview-card overview-entry")}
+  {pill(72, 224, "Email")}
+  {pill(162, 224, "Teams")}
+
+  {card(360, 106, 335, 330, "2. Authenticated case page", "One authorised FinOps issue with evidence and guided actions.", "overview-card overview-case")}
+  <rect class="overview-window" x="392" y="220" width="270" height="166" rx="10" />
+  <rect class="overview-window-bar" x="392" y="220" width="270" height="28" rx="10" />
+  <text class="overview-ui-label" x="416" y="274">Cost delta: GBP 18.5k</text>
+  <text class="overview-ui-label" x="416" y="302">Owner: Payments Platform</text>
+  <text class="overview-ui-label" x="416" y="330">Status: awaiting response</text>
+  {pill(418, 356, "Justify", "overview-pill overview-action")}
+  {pill(512, 356, "Dispute", "overview-pill overview-action")}
+
+  <g class="overview-chat">
+    <circle cx="790" cy="164" r="24" class="overview-ai-avatar" />
+    <text class="overview-avatar-text" x="790" y="170" text-anchor="middle">AI</text>
+    <rect class="overview-chat-ai" x="832" y="128" width="258" height="70" rx="14" />
+    <text class="overview-chat-text" x="852" y="158">This looks like expected business</text>
+    <text class="overview-chat-text" x="852" y="177">growth. Confirm?</text>
+    <rect class="overview-chat-user" x="790" y="246" width="282" height="64" rx="14" />
+    <text class="overview-chat-text" x="810" y="282">Yes. New merchant onboarding.</text>
+    <circle cx="1120" cy="278" r="24" class="overview-user-avatar" />
+    <text class="overview-avatar-text" x="1120" y="284" text-anchor="middle">U</text>
+  </g>
+
+  {card(780, 376, 310, 104, "3. Controlled submit", "User reviews a structured preview. Backend validates before any write.", "overview-card overview-submit")}
+
+  {database(1148, 118, 146, 104, "S3 Cases", "narrow case files")}
+  {database(1148, 304, 146, 104, "S3 State", "state history")}
+  {database(1148, 502, 146, 104, "S3 Export", "dashboard records")}
+  {card(780, 542, 310, 104, "4. Dashboard", "FinOps sees response status, commentary, disputes, and reassignment requests.", "overview-card overview-dashboard")}
+
+  {arrow(272, 202, 360, 254, "deep link")}
+  {arrow(695, 286, 780, 174, "case context", 0, -12)}
+  {arrow(930, 310, 930, 376, "confirmed")}
+  {arrow(1090, 428, 1148, 356, "validated writes", -34, -16)}
+  {arrow(1090, 594, 1148, 554, "read export", -38, 16)}
+</svg>
+</figure>
+"""
+
+
 def render_security_architecture_svg(source: str) -> str:
     width = 1180
     height = 760
@@ -844,6 +940,10 @@ def parse_markdown(markdown: str) -> tuple[str, list[Heading], str]:
                 continue
             if language == "conversation":
                 blocks.append(render_conversation_svg(code))
+                i += 1
+                continue
+            if language == "visual-overview":
+                blocks.append(render_visual_overview_svg(code))
                 i += 1
                 continue
             if language == "security-architecture":
@@ -1376,6 +1476,157 @@ pre code {
   font-weight: 560;
 }
 
+.overview-diagram {
+  margin: 1.55rem 0 1.9rem;
+  overflow-x: auto;
+  break-inside: avoid;
+}
+
+.overview-svg {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.overview-bg {
+  fill: #fffaf7;
+  stroke: var(--accent-line);
+  stroke-width: 1.5;
+}
+
+.overview-card,
+.overview-window,
+.overview-chat-ai {
+  fill: #ffffff;
+  stroke: #edc8ba;
+  stroke-width: 1.25;
+}
+
+.overview-case {
+  fill: #fdf7f3;
+}
+
+.overview-submit,
+.overview-dashboard {
+  fill: #fffefd;
+}
+
+.overview-entry {
+  fill: #fff4ed;
+}
+
+.overview-window-bar {
+  fill: var(--accent-soft);
+}
+
+.overview-pill {
+  fill: #ffe2d2;
+  stroke: var(--accent-line);
+  stroke-width: 1;
+}
+
+.overview-action {
+  fill: #fdd6bf;
+}
+
+.overview-db {
+  fill: #fff6ef;
+  stroke: #d26a45;
+  stroke-width: 1.3;
+}
+
+.overview-db-top {
+  fill: #ffe5d5;
+  stroke: #d26a45;
+  stroke-width: 1.3;
+}
+
+.overview-arrow {
+  fill: none;
+  stroke: #b83218;
+  stroke-width: 2;
+}
+
+.overview-arrow-label-bg {
+  fill: rgba(255, 250, 247, 0.94);
+  stroke: #f0c8b9;
+  stroke-width: 0.8;
+}
+
+.overview-arrow-label,
+.overview-pill-text,
+.overview-ui-label,
+.overview-chat-text,
+.overview-body,
+.overview-title,
+.overview-kicker,
+.overview-heading,
+.overview-avatar-text {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.overview-kicker {
+  fill: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 820;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.overview-heading {
+  fill: var(--ink);
+  font-size: 25px;
+  font-weight: 820;
+}
+
+.overview-title {
+  fill: var(--ink);
+  font-size: 15px;
+  font-weight: 820;
+}
+
+.overview-body,
+.overview-ui-label,
+.overview-chat-text {
+  fill: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 560;
+}
+
+.overview-pill-text {
+  fill: #7f2714;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.overview-arrow-label {
+  fill: #8f2b17;
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.overview-ai-avatar {
+  fill: #b83218;
+}
+
+.overview-user-avatar {
+  fill: #31505d;
+}
+
+.overview-avatar-text {
+  fill: #ffffff;
+  font-size: 13px;
+  font-weight: 840;
+}
+
+.overview-chat-user {
+  fill: #eef7f7;
+  stroke: #a9c8cc;
+  stroke-width: 1.25;
+}
+
 .architecture-diagram {
   margin: 1.45rem 0 1.75rem;
   overflow-x: auto;
@@ -1740,6 +1991,16 @@ tbody tr:nth-child(even) {
     width: auto;
     max-width: 100%;
     max-height: 185mm;
+  }
+
+  .overview-diagram {
+    overflow: visible;
+  }
+
+  .overview-svg {
+    width: auto;
+    max-width: 100%;
+    max-height: 172mm;
   }
 
   .architecture-diagram {

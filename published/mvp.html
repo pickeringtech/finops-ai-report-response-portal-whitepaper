@@ -451,6 +451,157 @@ pre code {
   font-weight: 560;
 }
 
+.overview-diagram {
+  margin: 1.55rem 0 1.9rem;
+  overflow-x: auto;
+  break-inside: avoid;
+}
+
+.overview-svg {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.overview-bg {
+  fill: #fffaf7;
+  stroke: var(--accent-line);
+  stroke-width: 1.5;
+}
+
+.overview-card,
+.overview-window,
+.overview-chat-ai {
+  fill: #ffffff;
+  stroke: #edc8ba;
+  stroke-width: 1.25;
+}
+
+.overview-case {
+  fill: #fdf7f3;
+}
+
+.overview-submit,
+.overview-dashboard {
+  fill: #fffefd;
+}
+
+.overview-entry {
+  fill: #fff4ed;
+}
+
+.overview-window-bar {
+  fill: var(--accent-soft);
+}
+
+.overview-pill {
+  fill: #ffe2d2;
+  stroke: var(--accent-line);
+  stroke-width: 1;
+}
+
+.overview-action {
+  fill: #fdd6bf;
+}
+
+.overview-db {
+  fill: #fff6ef;
+  stroke: #d26a45;
+  stroke-width: 1.3;
+}
+
+.overview-db-top {
+  fill: #ffe5d5;
+  stroke: #d26a45;
+  stroke-width: 1.3;
+}
+
+.overview-arrow {
+  fill: none;
+  stroke: #b83218;
+  stroke-width: 2;
+}
+
+.overview-arrow-label-bg {
+  fill: rgba(255, 250, 247, 0.94);
+  stroke: #f0c8b9;
+  stroke-width: 0.8;
+}
+
+.overview-arrow-label,
+.overview-pill-text,
+.overview-ui-label,
+.overview-chat-text,
+.overview-body,
+.overview-title,
+.overview-kicker,
+.overview-heading,
+.overview-avatar-text {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.overview-kicker {
+  fill: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 820;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.overview-heading {
+  fill: var(--ink);
+  font-size: 25px;
+  font-weight: 820;
+}
+
+.overview-title {
+  fill: var(--ink);
+  font-size: 15px;
+  font-weight: 820;
+}
+
+.overview-body,
+.overview-ui-label,
+.overview-chat-text {
+  fill: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 560;
+}
+
+.overview-pill-text {
+  fill: #7f2714;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.overview-arrow-label {
+  fill: #8f2b17;
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.overview-ai-avatar {
+  fill: #b83218;
+}
+
+.overview-user-avatar {
+  fill: #31505d;
+}
+
+.overview-avatar-text {
+  fill: #ffffff;
+  font-size: 13px;
+  font-weight: 840;
+}
+
+.overview-chat-user {
+  fill: #eef7f7;
+  stroke: #a9c8cc;
+  stroke-width: 1.25;
+}
+
 .architecture-diagram {
   margin: 1.45rem 0 1.75rem;
   overflow-x: auto;
@@ -817,6 +968,16 @@ tbody tr:nth-child(even) {
     max-height: 185mm;
   }
 
+  .overview-diagram {
+    overflow: visible;
+  }
+
+  .overview-svg {
+    width: auto;
+    max-width: 100%;
+    max-height: 172mm;
+  }
+
   .architecture-diagram {
     overflow: visible;
   }
@@ -842,6 +1003,7 @@ tbody tr:nth-child(even) {
     <div class="layout">
       <nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol><li class="toc-item"><a href="#purpose">Purpose</a></li>
 <li class="toc-item"><a href="#mvp-outcome">MVP Outcome</a></li>
+<li class="toc-item"><a href="#mvp-visual-overview">MVP Visual Overview</a></li>
 <li class="toc-item"><a href="#user-interface-model">User Interface Model</a></li>
 <li class="toc-subitem"><a href="#primary-interface-case-page">Primary Interface: Case Page</a></li>
 <li class="toc-subitem"><a href="#user-actions">User Actions</a></li>
@@ -915,6 +1077,85 @@ tbody tr:nth-child(even) {
 <td class="align-left">View, draft, submit, and export events recorded</td>
 </tr>
 </tbody></table></div>
+<h2 id="mvp-visual-overview">MVP Visual Overview</h2>
+<p>The whole MVP can be understood as a controlled response loop. Users enter from email or Teams, work inside one authenticated case page, receive AI assistance inside that case context, then submit a structured response that the backend writes to S3-backed outputs.</p>
+
+<figure class="overview-diagram">
+<svg class="overview-svg" width="1320" height="720" viewBox="0 0 1320 720" role="img" aria-label="FinOps Response Portal MVP visual overview" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="overview-arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#b83218" />
+    </marker>
+  </defs>
+  <rect class="overview-bg" x="1" y="1" width="1318" height="718" rx="18" />
+
+  <text class="overview-kicker" x="42" y="48">MVP response loop</text>
+  <text class="overview-heading" x="42" y="82">From notification to dashboard-ready FinOps response</text>
+
+  <rect class="overview-card overview-entry" x="42" y="128" width="230" height="146" rx="14" />
+<text class="overview-title" x="62" y="158">1. Entry</text>
+<text class="overview-body" x="62" y="184">Email or Teams asks the</text>
+<text class="overview-body" x="62" y="200">owner to respond.</text>
+  <rect class="overview-pill" x="72" y="224" width="92" height="30" rx="15" /><text class="overview-pill-text" x="118.0" y="244" text-anchor="middle">Email</text>
+  <rect class="overview-pill" x="162" y="224" width="92" height="30" rx="15" /><text class="overview-pill-text" x="208.0" y="244" text-anchor="middle">Teams</text>
+
+  <rect class="overview-card overview-case" x="360" y="106" width="335" height="330" rx="14" />
+<text class="overview-title" x="380" y="136">2. Authenticated case page</text>
+<text class="overview-body" x="380" y="162">One authorised FinOps issue</text>
+<text class="overview-body" x="380" y="178">with evidence and guided</text>
+<text class="overview-body" x="380" y="194">actions.</text>
+  <rect class="overview-window" x="392" y="220" width="270" height="166" rx="10" />
+  <rect class="overview-window-bar" x="392" y="220" width="270" height="28" rx="10" />
+  <text class="overview-ui-label" x="416" y="274">Cost delta: GBP 18.5k</text>
+  <text class="overview-ui-label" x="416" y="302">Owner: Payments Platform</text>
+  <text class="overview-ui-label" x="416" y="330">Status: awaiting response</text>
+  <rect class="overview-pill overview-action" x="418" y="356" width="92" height="30" rx="15" /><text class="overview-pill-text" x="464.0" y="376" text-anchor="middle">Justify</text>
+  <rect class="overview-pill overview-action" x="512" y="356" width="92" height="30" rx="15" /><text class="overview-pill-text" x="558.0" y="376" text-anchor="middle">Dispute</text>
+
+  <g class="overview-chat">
+    <circle cx="790" cy="164" r="24" class="overview-ai-avatar" />
+    <text class="overview-avatar-text" x="790" y="170" text-anchor="middle">AI</text>
+    <rect class="overview-chat-ai" x="832" y="128" width="258" height="70" rx="14" />
+    <text class="overview-chat-text" x="852" y="158">This looks like expected business</text>
+    <text class="overview-chat-text" x="852" y="177">growth. Confirm?</text>
+    <rect class="overview-chat-user" x="790" y="246" width="282" height="64" rx="14" />
+    <text class="overview-chat-text" x="810" y="282">Yes. New merchant onboarding.</text>
+    <circle cx="1120" cy="278" r="24" class="overview-user-avatar" />
+    <text class="overview-avatar-text" x="1120" y="284" text-anchor="middle">U</text>
+  </g>
+
+  <rect class="overview-card overview-submit" x="780" y="376" width="310" height="104" rx="14" />
+<text class="overview-title" x="800" y="406">3. Controlled submit</text>
+<text class="overview-body" x="800" y="432">User reviews a structured</text>
+<text class="overview-body" x="800" y="448">preview. Backend validates</text>
+<text class="overview-body" x="800" y="464">before any write.</text>
+
+  <path class="overview-db" d="M1148,136 C1148,112 1294,112 1294,136 L1294,204 C1294,228 1148,228 1148,204 Z" />
+<ellipse class="overview-db-top" cx="1221.0" cy="136" rx="73.0" ry="18" />
+<text class="overview-title" x="1221.0" y="166" text-anchor="middle">S3 Cases</text>
+<text class="overview-body" x="1221.0" y="190" text-anchor="middle">narrow case files</text>
+  <path class="overview-db" d="M1148,322 C1148,298 1294,298 1294,322 L1294,390 C1294,414 1148,414 1148,390 Z" />
+<ellipse class="overview-db-top" cx="1221.0" cy="322" rx="73.0" ry="18" />
+<text class="overview-title" x="1221.0" y="352" text-anchor="middle">S3 State</text>
+<text class="overview-body" x="1221.0" y="376" text-anchor="middle">state history</text>
+  <path class="overview-db" d="M1148,520 C1148,496 1294,496 1294,520 L1294,588 C1294,612 1148,612 1148,588 Z" />
+<ellipse class="overview-db-top" cx="1221.0" cy="520" rx="73.0" ry="18" />
+<text class="overview-title" x="1221.0" y="550" text-anchor="middle">S3 Export</text>
+<text class="overview-body" x="1221.0" y="574" text-anchor="middle">dashboard records</text>
+  <rect class="overview-card overview-dashboard" x="780" y="542" width="310" height="104" rx="14" />
+<text class="overview-title" x="800" y="572">4. Dashboard</text>
+<text class="overview-body" x="800" y="598">FinOps sees response status,</text>
+<text class="overview-body" x="800" y="614">commentary, disputes, and</text>
+<text class="overview-body" x="800" y="630">reassignment requests.</text>
+
+  <path class="overview-arrow" d="M272,202 L360,254" marker-end="url(#overview-arrow)" /><rect class="overview-arrow-label-bg" x="276.0" y="205.0" width="80" height="20" rx="5" /><text class="overview-arrow-label" x="316.0" y="219.0" text-anchor="middle">deep link</text>
+  <path class="overview-arrow" d="M695,286 L780,174" marker-end="url(#overview-arrow)" /><rect class="overview-arrow-label-bg" x="690.5" y="195.0" width="94" height="20" rx="5" /><text class="overview-arrow-label" x="737.5" y="209.0" text-anchor="middle">case context</text>
+  <path class="overview-arrow" d="M930,310 L930,376" marker-end="url(#overview-arrow)" /><rect class="overview-arrow-label-bg" x="890.0" y="320.0" width="80" height="20" rx="5" /><text class="overview-arrow-label" x="930.0" y="334.0" text-anchor="middle">confirmed</text>
+  <path class="overview-arrow" d="M1090,428 L1148,356" marker-end="url(#overview-arrow)" /><rect class="overview-arrow-label-bg" x="1026.0" y="353.0" width="118" height="20" rx="5" /><text class="overview-arrow-label" x="1085.0" y="367.0" text-anchor="middle">validated writes</text>
+  <path class="overview-arrow" d="M1090,594 L1148,554" marker-end="url(#overview-arrow)" /><rect class="overview-arrow-label-bg" x="1037.0" y="567.0" width="88" height="20" rx="5" /><text class="overview-arrow-label" x="1081.0" y="581.0" text-anchor="middle">read export</text>
+</svg>
+</figure>
+
 <h2 id="user-interface-model">User Interface Model</h2>
 <p>The MVP has one canonical user interface: an authenticated internal web case page.</p>
 <p>Email and Teams are notification and entry channels. They are not the system of record and they do not replace the case page for final review.</p>

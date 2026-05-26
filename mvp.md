@@ -27,6 +27,19 @@ The value is:
 | Safer AI adoption | Bedrock only assists; backend owns all writes |
 | Clear audit trail | View, draft, submit, and export events recorded |
 
+## MVP Visual Overview
+
+The whole MVP can be understood as a controlled response loop. Users enter from email or Teams, work inside one authenticated case page, receive AI assistance inside that case context, then submit a structured response that the backend writes to S3-backed outputs.
+
+```visual-overview
+entry: Email and Teams notifications
+interface: Authenticated case page
+assistant: Case-scoped AI chat and drafting
+control: User confirmation and backend validation
+storage: S3 case files, responses, audit, dashboard export
+dashboard: FinOps dashboard and review workflow
+```
+
 ## User Interface Model
 
 The MVP has one canonical user interface: an authenticated internal web case page.
