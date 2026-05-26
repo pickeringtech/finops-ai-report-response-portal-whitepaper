@@ -765,20 +765,20 @@ def render_visual_overview_svg(source: str) -> str:
   <rect class="overview-bg" x="1" y="1" width="1318" height="718" rx="18" />
 
   <text class="overview-kicker" x="42" y="48">MVP response loop</text>
-  <text class="overview-heading" x="42" y="82">From notification to dashboard-ready FinOps response</text>
+  <text class="overview-heading" x="42" y="82">From Teams conversation to dashboard-ready FinOps response</text>
 
-  {card(42, 128, 230, 146, "1. Entry", "Email or Teams asks the owner to respond.", "overview-card overview-entry")}
-  {pill(72, 224, "Email")}
-  {pill(162, 224, "Teams")}
+  {card(42, 128, 250, 146, "1. Teams prompt", "Bot asks the assigned owner or channel to respond.", "overview-card overview-entry")}
+  {pill(62, 224, "Direct chat")}
+  {pill(190, 224, "Channel")}
 
-  {card(360, 106, 335, 330, "2. Authenticated case page", "One authorised FinOps issue with evidence and guided actions.", "overview-card overview-case")}
+  {card(360, 106, 335, 330, "2. Teams bot conversation", "One authorised FinOps issue discussed naturally with case-scoped guidance.", "overview-card overview-case")}
   <rect class="overview-window" x="392" y="220" width="270" height="166" rx="10" />
   <rect class="overview-window-bar" x="392" y="220" width="270" height="28" rx="10" />
   <text class="overview-ui-label" x="416" y="274">Cost delta: GBP 18.5k</text>
   <text class="overview-ui-label" x="416" y="302">Owner: Payments Platform</text>
-  <text class="overview-ui-label" x="416" y="330">Status: awaiting response</text>
-  {pill(418, 356, "Justify", "overview-pill overview-action")}
-  {pill(512, 356, "Dispute", "overview-pill overview-action")}
+  <text class="overview-ui-label" x="416" y="330">Bot status: drafting response</text>
+  {pill(400, 356, "Explain", "overview-pill overview-action")}
+  {pill(526, 356, "Draft", "overview-pill overview-action")}
 
   <g class="overview-chat">
     <circle cx="790" cy="164" r="24" class="overview-ai-avatar" />
@@ -792,14 +792,14 @@ def render_visual_overview_svg(source: str) -> str:
     <text class="overview-avatar-text" x="1120" y="284" text-anchor="middle">U</text>
   </g>
 
-  {card(780, 376, 310, 104, "3. Controlled submit", "User reviews a structured preview. Backend validates before any write.", "overview-card overview-submit")}
+  {card(780, 376, 310, 104, "3. Confirm in Teams", "User reviews a structured card. Backend validates before any write.", "overview-card overview-submit")}
 
   {database(1148, 118, 146, 104, "S3 Cases", "narrow case files")}
   {database(1148, 304, 146, 104, "S3 State", "state history")}
   {database(1148, 502, 146, 104, "S3 Export", "dashboard records")}
   {card(780, 542, 310, 104, "4. Dashboard", "FinOps sees response status, commentary, disputes, and reassignment requests.", "overview-card overview-dashboard")}
 
-  {arrow(272, 202, 360, 254, "deep link")}
+  {arrow(292, 202, 360, 254, "Teams message")}
   {arrow(695, 286, 780, 174, "case context", 0, -12)}
   {arrow(930, 310, 930, 376, "confirmed")}
   {arrow(1090, 428, 1148, 356, "validated writes", -34, -16)}

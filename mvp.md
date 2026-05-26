@@ -11,11 +11,11 @@ The goal is not to build a broad FinOps agent. The goal is to remove the slowest
 - The response must be structured, auditable, and dashboard-ready.
 - Reassignment and disputes must be captured without mutating catalogues or AWS resources.
 
-The MVP delivers one controlled response workflow for one report feed, one approved model, one authenticated internal UI, and S3-backed state/export.
+The MVP delivers one controlled response workflow for one report feed, one approved model, one Teams bot conversation interface, and S3-backed state/export.
 
 ## MVP Outcome
 
-At the end of the MVP, FinOps can send a user a secure link for a specific report item. The user authenticates, reviews AI-assisted context, submits a controlled response, and the system writes an auditable S3-backed output that dashboards can consume.
+At the end of the MVP, FinOps can ask a user to respond to a specific report item inside Teams. The user discusses the case naturally with a bot, reviews a structured summary inside the conversation, explicitly confirms the response, and the system writes an auditable S3-backed output that dashboards can consume.
 
 The value is:
 
@@ -29,73 +29,73 @@ The value is:
 
 ## MVP Visual Overview
 
-The whole MVP can be understood as a controlled response loop. Users enter from email or Teams, work inside one authenticated case page, receive AI assistance inside that case context, then submit a structured response that the backend writes to S3-backed outputs.
+The whole MVP can be understood as a controlled conversational response loop. Users receive a Teams prompt, discuss the assigned FinOps case with a bot, confirm a structured response inside Teams, then the backend writes S3-backed outputs for audit and dashboarding.
 
 ```visual-overview
-entry: Email and Teams notifications
-interface: Authenticated case page
-assistant: Case-scoped AI chat and drafting
+entry: Teams bot notification
+interface: Teams conversation thread
+assistant: Case-scoped AI discussion and drafting
 control: User confirmation and backend validation
 storage: S3 case files, responses, audit, dashboard export
 dashboard: FinOps dashboard and review workflow
 ```
 
-## User Interface Model
+## Conversation Interface Model
 
-The MVP has one canonical user interface: an authenticated internal web case page.
+The MVP has one canonical user interface: a Microsoft Teams bot conversation.
 
-Email and Teams are notification and entry channels. They are not the system of record and they do not replace the case page for final review.
+The user should be able to complete the MVP without opening a separate web page. The bot can use Teams messages and Adaptive Cards to present the issue, ask clarifying questions, collect the response, and request final confirmation.
 
 ```mermaid
 flowchart TD
-    notify["Email or Teams notification"]
-    link["Secure deep link"]
-    sso["Enterprise SSO"]
-    case["Case-specific web page"]
-    assist["Guided AI-assisted response"]
-    confirm["Explicit user confirmation"]
+    notify["Teams bot notifies assigned user or channel"]
+    auth["Teams identity checked against responder group"]
+    thread["Case-specific conversation thread"]
+    discuss["Natural discussion with case-scoped AI assistance"]
+    preview["Adaptive Card shows structured response preview"]
+    confirm["User explicitly confirms in Teams"]
     write["Backend writes S3-backed response, export, and audit"]
 
-    notify --> link --> sso --> case --> assist --> confirm --> write
+    notify --> auth --> thread --> discuss --> preview --> confirm --> write
 ```
 
-### Primary Interface: Case Page
+### Primary Interface: Teams Bot Conversation
 
-The user interacts with a single case page for one report item.
+The user interacts with one Teams conversation for one report item. That conversation may be a direct chat with the assigned owner or a channel thread where the assigned responder group is authorised to reply.
 
-The page must make three things obvious immediately:
+The bot must make three things obvious immediately:
 
-| Question | UI Answer |
+| Question | Bot Answer |
 | --- | --- |
-| What is this issue? | Summary, cost delta, service, period, current owner |
-| Why did I receive it? | Assigned team/application/product and responder group |
-| What can I do now? | Four controlled response actions |
+| What is this issue? | Teams message or Adaptive Card with summary, cost delta, service, period, and current owner |
+| Why did I receive it? | Assigned team/application/product and authorised responder group |
+| What can I do now? | Reply naturally, ask for explanation, or choose one of the controlled response actions |
 
-Minimum page layout:
+Minimum Teams conversation elements:
 
 | Area | Contents |
 | --- | --- |
-| Header | Issue ID, status, due date, report period |
-| Assignment panel | Product, application, team, responder group |
-| Cost panel | Service, cost delta, currency, detected drivers |
-| Evidence panel | Links to source report, dashboard, change records if present |
-| AI guidance panel | Plain-English explanation and follow-up questions |
-| Response panel | Controlled form for justification, dispute, reassignment, or investigation |
-| Review panel | Final structured response preview before submission |
-| Audit strip | Last updated, submitted by, current state |
+| Initial bot message | Issue ID, report period, service, cost delta, status, due date |
+| Assignment context | Product, application, team, responder group |
+| Evidence summary | Source report reference, detected drivers, dashboard reference if present |
+| Natural discussion | User can ask questions and explain the situation in plain language |
+| Bot guidance | Plain-English explanation, follow-up questions, category suggestions |
+| Response capture | Bot maps the conversation to justification, dispute, reassignment, or investigation |
+| Confirmation card | Structured response preview with Confirm, Edit, and Cancel actions |
+| Audit events | View/notify, assist, draft, confirm, submit, and write events |
 
-The page is not a general chatbot. It is a guided response workspace for one authorised case.
+The bot is not a broad FinOps chatbot. Each conversation is scoped to one authorised case unless the user explicitly asks to switch to another assigned case.
 
 ### User Actions
 
 The user gets four primary actions.
 
-| Action | UI Pattern | Backend Result |
+| Action | Teams Pattern | Backend Result |
 | --- | --- | --- |
-| Provide justification | Guided form with AI-assisted drafting | `justified` response written |
-| Dispute issue | Structured challenge reason and notes | `disputed` response written |
-| Request reassignment | Proposed owner/application/team fields | `reassignment_requested` response written |
-| Mark needs investigation | Reason and optional next step | investigation state written |
+| Provide justification | User explains naturally; bot drafts structured justification for confirmation | `justified` response written |
+| Dispute issue | User challenges data, amount, service, or allocation; bot captures structured reason | `disputed` response written |
+| Request reassignment | User names proposed owner/application/team; bot captures reassignment request | `reassignment_requested` response written |
+| Mark needs investigation | User says they need time or more evidence; bot captures reason and next step | investigation state written |
 
 Secondary actions:
 
@@ -104,7 +104,7 @@ Secondary actions:
 | Ask for explanation | AI explains the current case file only |
 | Improve wording | AI drafts clearer finance-friendly wording |
 | Classify response | AI suggests controlled category; user confirms |
-| Attach evidence link | User adds URL/reference metadata; backend validates shape |
+| Attach evidence link | User pastes URL/reference metadata; backend validates shape |
 | Cancel | No response write; audit may record view/session only |
 
 ### Final Submission Flow
@@ -113,21 +113,21 @@ Every final response follows the same pattern.
 
 ```mermaid
 flowchart TD
-    draft["User drafts or accepts AI-assisted response"]
-    preview["UI shows structured response preview"]
-    confirm["User clicks Submit response"]
+    draft["User discusses case naturally in Teams"]
+    preview["Bot shows structured response preview"]
+    confirm["User clicks Confirm or replies with explicit confirmation"]
     validate["Backend validates schema and authorisation"]
     write["Backend writes current response, history, export, audit"]
-    done["UI shows submitted status"]
+    done["Bot posts submitted status"]
 
     draft --> preview --> confirm --> validate --> write --> done
 ```
 
-There is no hidden model action after the user clicks submit. The backend writes only the reviewed structured response.
+There is no hidden model action after the user confirms. The backend writes only the reviewed structured response.
 
 ### Email Interface
 
-Email is used for notification only.
+Email is optional in the MVP and is used for notification or escalation only. It should point the user back to Teams, not to a separate required web UI.
 
 Minimum email content:
 
@@ -137,74 +137,77 @@ Minimum email content:
 | Issue summary | `EC2 spend increased by £18.5k for May 2026` |
 | Assigned owner | `Payments / Checkout API / Payments Platform` |
 | Due date | `2026-06-07` |
-| Action link | `Open response case` |
+| Action link | `Open Teams conversation` |
 
 The email link contains report ID and issue ID only. It does not grant access by itself.
 
 ```text
-https://finops-response.internal.company/report/monthly-2026-05/issue/finops-2026-05-001234
+https://teams.microsoft.com/l/chat/0/0?users=finops-response-bot@company.com&topicName=finops-2026-05-001234
 ```
 
 ### Teams Interface
 
-Teams can be added in the MVP if the organisation already supports Teams app/bot deployment. It should still call the same backend API.
+Teams is the MVP interface. The bot should call the same backend API for every read, model assist, draft, validation, confirmation, write, and audit event.
 
-Recommended Teams scope:
+MVP Teams scope:
 
 | Teams Feature | MVP Use |
 | --- | --- |
-| Bot notification | Tell assigned team a response is required |
-| Adaptive Card | Show summary, due date, status, and action buttons |
-| Open case button | Deep link to the authenticated web case page |
+| Bot notification | Tell assigned user or team a response is required |
+| Natural-language chat | Let the user ask questions, explain context, dispute, or request reassignment |
+| Adaptive Card | Show summary, due date, status, suggested category, and confirmation actions |
 | Reminder message | Notify before due date or when status changes |
-| Lightweight response | Optional for simple `needs investigation` or short justification |
+| Final confirmation | User confirms the structured response inside Teams |
 
-Teams should not be the only interface for complex responses. Complex justification, disputes, reassignment, and evidence review should open the case page.
+Complex justification, disputes, reassignment, and evidence review should still happen through the bot conversation. If the conversation becomes ambiguous, the bot should ask targeted follow-up questions and require explicit confirmation before submission.
 
 Teams card actions:
 
 | Button | Behaviour |
 | --- | --- |
-| Open case | Opens the canonical web page |
-| Ask AI to explain | Calls backend; returns case-scoped explanation |
-| Mark needs investigation | Opens confirmation or case page |
-| Request reassignment | Opens case page with reassignment action selected |
+| Explain | Calls backend; returns case-scoped explanation |
+| Draft response | Converts the conversation into a structured preview |
+| Confirm response | Submits the reviewed structured response |
+| Edit response | Reopens the draft in the Teams conversation |
+| Mark needs investigation | Captures reason and proposed next step |
+| Request reassignment | Captures proposed owner/application/team |
 
 The safe pattern is:
 
 ```mermaid
 flowchart TD
-    teams["Teams Bot / Adaptive Card"]
+    teams["Teams Bot conversation"]
     api["Authenticated backend API"]
-    authz["Same authorisation and validation as web"]
-    writes["Same S3-backed writes and audit trail"]
+    authz["Authorisation and schema validation"]
+    writes["S3-backed writes and audit trail"]
 
     teams --> api --> authz --> writes
 ```
 
-## Interface State Model
+## Conversation State Model
 
-The case page should expose state clearly.
+The bot should expose state clearly in the thread and in any card it posts.
 
-| UI State | Meaning | User Experience |
+| State | Meaning | User Experience |
 | --- | --- | --- |
-| Awaiting response | No final response submitted | Primary actions enabled |
-| In discussion | User has started but not submitted | Draft visible, submit still required |
-| Submitted | Final response written | Read-only summary plus audit details |
-| Pending FinOps review | Dispute or unclear response needs review | User sees review state |
-| Reassignment requested | Proposed new owner captured | User sees pending approval |
-| Closed | No further action needed | Read-only |
+| Awaiting response | No final response submitted | Bot has prompted the owner and can answer case questions |
+| In discussion | User has started but not submitted | Bot can continue asking follow-up questions |
+| Awaiting confirmation | Structured draft exists | Bot shows preview and asks for explicit confirmation |
+| Submitted | Final response written | Bot posts submitted summary plus audit reference |
+| Pending FinOps review | Dispute or unclear response needs review | Bot tells the user FinOps review is pending |
+| Reassignment requested | Proposed new owner captured | Bot tells the user reassignment is pending approval |
+| Closed | No further action needed | Bot posts read-only summary if asked |
 
 ## Interface Acceptance Criteria
 
 | Requirement | Acceptance Test |
 | --- | --- |
-| User understands why they received the case | Case page shows current assignment and responder group |
-| User understands the financial issue | Case page shows period, service, cost delta, and drivers |
-| User can act without free-form email | Four controlled response actions are available |
-| User can review before submit | UI shows structured preview before final write |
-| AI assistance is bounded | AI panel only references current case context |
-| Teams/email are not security boundaries | Opening a link still requires SSO and backend authz |
+| User understands why they received the case | Bot message shows current assignment and responder group |
+| User understands the financial issue | Bot message or card shows period, service, cost delta, and drivers |
+| User can act without free-form email | Four controlled response outcomes can be reached from Teams |
+| User can review before submit | Bot shows structured preview before final write |
+| AI assistance is bounded | Bot only references current case context |
+| Teams/email are not security boundaries | Backend validates Teams identity and responder-group membership |
 | Dashboard data is produced | Submit creates dashboard export record |
 | Audit is complete | View, assist, submit, and write events are recorded |
 
@@ -230,8 +233,8 @@ flowchart TD
 | Capability | MVP Definition |
 | --- | --- |
 | One report source | A pre-built case file per report item |
-| One notification route | Email deep link to the internal app |
-| One authenticated UI | Web page with case details and guided chat |
+| One primary interface | Teams bot conversation with Adaptive Card checkpoints |
+| Optional email notification | Email can remind or escalate, but Teams remains the response interface |
 | One model | One approved Bedrock text model |
 | Four response types | Justification, dispute, reassignment request, needs investigation |
 | S3-backed storage | Case files, current response, history, export, audit |
@@ -247,6 +250,7 @@ flowchart TD
 | Live AWS infrastructure inspection | The app does not diagnose resources directly |
 | IAM, tag, billing, or catalogue mutation | MVP captures requests only |
 | Broad chatbot over all cost data | Interaction is scoped to one case |
+| Dedicated web response UI | Not needed for the MVP; Teams is the user-facing interface |
 | Direct browser-to-S3 writes | Backend must validate and audit all writes |
 | Multiple model providers | One approved model is enough to prove value |
 
@@ -255,16 +259,15 @@ flowchart TD
 ```mermaid
 flowchart TD
     report["Report pipeline creates case file"]
-    email["Email contains secure case link"]
-    auth["User authenticates via SSO"]
-    case["Portal loads one authorised case"]
-    assist["AI explains context and asks guided questions"]
-    choose["User chooses response type"]
-    confirm["User confirms final structured response"]
+    teams["Teams bot notifies assigned owner or channel"]
+    auth["Backend validates Teams identity and responder group"]
+    discuss["User discusses the case naturally with the bot"]
+    draft["Bot creates structured response preview"]
+    confirm["User confirms final response in Teams"]
     write["Backend writes response, history, export, audit"]
     dashboard["Dashboard reads S3 export"]
 
-    report --> email --> auth --> case --> assist --> choose --> confirm --> write --> dashboard
+    report --> teams --> auth --> discuss --> draft --> confirm --> write --> dashboard
 ```
 
 ## MVP Architecture
@@ -272,7 +275,8 @@ flowchart TD
 ```mermaid
 flowchart LR
     user["User"]
-    portal["Internal Web Portal / API"]
+    teams["Microsoft Teams Bot"]
+    api["Internal Response API"]
     bedrock["Amazon Bedrock Runtime"]
     s3case[("S3 Case Files")]
     s3state[("S3 Response State")]
@@ -281,14 +285,16 @@ flowchart LR
     s3audit[("S3 Audit Logs")]
     dashboard["Dashboard Tooling"]
 
-    user -->|"SSO-authenticated HTTPS"| portal
-    portal -->|"read narrow case file"| s3case
-    portal -->|"send narrow prompt"| bedrock
-    bedrock -->|"draft/explain/classify only"| portal
-    portal -->|"write current response"| s3state
-    portal -->|"append event"| s3history
-    portal -->|"write dashboard record"| s3export
-    portal -->|"write audit event"| s3audit
+    user -->|"Teams message / card action"| teams
+    teams -->|"authenticated backend call"| api
+    api -->|"read narrow case file"| s3case
+    api -->|"send narrow prompt"| bedrock
+    bedrock -->|"draft/explain/classify only"| api
+    api -->|"post reply / confirmation card"| teams
+    api -->|"write current response"| s3state
+    api -->|"append event"| s3history
+    api -->|"write dashboard record"| s3export
+    api -->|"write audit event"| s3audit
     dashboard -->|"read only"| s3export
 ```
 
@@ -437,7 +443,7 @@ The model may not:
 | Area | MVP Ask |
 | --- | --- |
 | Runtime | One private ECS, Lambda, or approved internal app runtime |
-| Auth | Enterprise SSO with email and group claims |
+| Auth | Teams identity mapped to enterprise email and responder-group claims |
 | Bedrock | Invoke one approved model in one approved region |
 | Network | Private route to Bedrock Runtime, S3, KMS, CloudWatch Logs, Secrets Manager if used |
 | S3 read | Case file prefix only |
@@ -462,17 +468,17 @@ The model may not:
 | Step | Deliverable |
 | --- | --- |
 | 1 | Case file schema and sample report item |
-| 2 | SSO-protected case page |
-| 3 | Backend read/authorisation path |
-| 4 | Bedrock explanation and guided response draft |
-| 5 | Deterministic submit endpoint |
+| 2 | Teams bot registration, command surface, and notification/card templates |
+| 3 | Backend read/authorisation path using Teams identity and responder groups |
+| 4 | Bedrock explanation and guided conversational drafting |
+| 5 | Deterministic confirmation and submit endpoint |
 | 6 | S3 current/history/export/audit writes |
 | 7 | Dashboard reads export prefix |
-| 8 | Pilot with one team and one report period |
+| 8 | Pilot with one team, one Teams channel, and one report period |
 
 ## Final MVP Statement
 
-Build one SSO-protected response portal for one report feed.
+Build one Teams bot response workflow for one report feed.
 
 Use Bedrock only to explain, ask, classify, and draft.
 
