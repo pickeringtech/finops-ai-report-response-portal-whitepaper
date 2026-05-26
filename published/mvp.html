@@ -1,0 +1,1336 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FinOps Response Portal MVP</title>
+  <style>
+:root {
+  color-scheme: light;
+  --ink: #17202a;
+  --muted: #5b6574;
+  --line: #d9e0e8;
+  --soft: #f5f7f8;
+  --panel: #ffffff;
+  --brand: #165c7d;
+  --brand-dark: #0d3448;
+  --accent: #e4572e;
+  --accent-strong: #b83218;
+  --accent-soft: #fff0e8;
+  --accent-line: #f2b199;
+  --code-bg: #132330;
+  --code-line: #304252;
+  --shadow: 0 22px 70px rgba(25, 38, 52, 0.11);
+}
+
+* { box-sizing: border-box; }
+
+html {
+  scroll-behavior: smooth;
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  background:
+    linear-gradient(90deg, rgba(22, 92, 125, 0.055) 0, transparent 28rem),
+    linear-gradient(180deg, #f7f9fb 0, #eef3f5 38rem, #f7f9fb 100%);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.62;
+}
+
+.page {
+  width: min(1180px, calc(100% - 44px));
+  margin: 32px auto 56px;
+  background: var(--panel);
+  border: 1px solid rgba(23, 32, 42, 0.08);
+  box-shadow: var(--shadow);
+}
+
+.cover {
+  position: relative;
+  min-height: 360px;
+  padding: 62px 72px 54px;
+  overflow: hidden;
+  color: #fff;
+  background:
+    linear-gradient(135deg, rgba(13, 52, 72, 0.97), rgba(22, 92, 125, 0.91) 56%, rgba(228, 87, 46, 0.86)),
+    repeating-linear-gradient(90deg, transparent 0 56px, rgba(255, 255, 255, 0.05) 56px 57px);
+}
+
+.cover::after {
+  content: "";
+  position: absolute;
+  right: -120px;
+  top: -130px;
+  width: 430px;
+  height: 430px;
+  border: 1px solid rgba(255, 214, 194, 0.34);
+  transform: rotate(25deg);
+}
+
+.eyebrow {
+  margin: 0 0 26px;
+  color: rgba(255,255,255,0.78);
+  font-size: 0.78rem;
+  font-weight: 720;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.eyebrow::before {
+  content: "";
+  display: inline-block;
+  width: 38px;
+  height: 3px;
+  margin-right: 12px;
+  vertical-align: middle;
+  background: #ff8a3d;
+}
+
+.cover h1 {
+  position: relative;
+  max-width: 880px;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(2.5rem, 6vw, 4.9rem);
+  line-height: 0.95;
+  letter-spacing: 0;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  gap: 42px;
+  padding: 42px 58px 64px;
+}
+
+.toc {
+  align-self: start;
+  position: sticky;
+  top: 24px;
+  max-height: calc(100vh - 48px);
+  padding: 18px 18px 18px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent-line) transparent;
+  border-right: 1px solid var(--line);
+}
+
+.toc::-webkit-scrollbar {
+  width: 8px;
+}
+
+.toc::-webkit-scrollbar-thumb {
+  background: var(--accent-line);
+  border-radius: 999px;
+}
+
+.toc::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.toc h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px;
+  color: var(--brand-dark);
+  font-size: 1.05rem;
+  letter-spacing: 0;
+}
+
+.toc h2::before {
+  content: "";
+  width: 28px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), #ff8a3d);
+}
+
+.toc ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.toc li {
+  margin: 0;
+}
+
+.toc a {
+  display: block;
+  margin: 0 0 4px;
+  padding: 7px 10px;
+  border-left: 3px solid transparent;
+  color: var(--muted);
+  background: transparent;
+  border-radius: 0 5px 5px 0;
+  font-size: 0.86rem;
+  line-height: 1.28;
+  text-decoration: none;
+}
+
+.toc .toc-item a {
+  font-weight: 680;
+  color: #344253;
+}
+
+.toc .toc-subitem a {
+  margin-left: 10px;
+  padding: 5px 8px;
+  color: var(--muted);
+  font-size: 0.79rem;
+}
+
+.toc a:hover {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border-left-color: var(--accent);
+}
+
+main {
+  min-width: 0;
+}
+
+main > h1 {
+  display: none;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--brand-dark);
+  line-height: 1.18;
+  letter-spacing: 0;
+  break-after: avoid;
+}
+
+h2 {
+  margin: 2.3rem 0 0.85rem;
+  padding-top: 0.95rem;
+  border-top: 1px solid var(--accent-line);
+  font-size: 1.75rem;
+}
+
+h2:first-child {
+  margin-top: 0;
+  border-top: 0;
+  padding-top: 0;
+}
+
+h3 {
+  margin: 1.8rem 0 0.65rem;
+  font-size: 1.22rem;
+}
+
+h4 {
+  margin: 1.4rem 0 0.5rem;
+  font-size: 1.03rem;
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+a {
+  color: var(--accent-strong);
+  text-underline-offset: 0.17em;
+}
+
+strong {
+  color: #101820;
+  font-weight: 720;
+}
+
+ul, ol {
+  margin: 0.25rem 0 1.15rem 1.45rem;
+  padding: 0;
+}
+
+li {
+  margin: 0.22rem 0;
+  padding-left: 0.2rem;
+}
+
+code {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.88em;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  padding: 0.08rem 0.28rem;
+  border-radius: 4px;
+}
+
+.code-block {
+  margin: 1.35rem 0;
+  overflow: hidden;
+  background: var(--code-bg);
+  border: 1px solid var(--code-line);
+  box-shadow: 0 10px 28px rgba(19, 35, 48, 0.12);
+  break-inside: avoid;
+}
+
+.code-block figcaption {
+  padding: 8px 14px;
+  color: #b9c7d4;
+  background: rgba(255,255,255,0.045);
+  border-bottom: 1px solid var(--code-line);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+pre {
+  margin: 0;
+  padding: 17px 18px;
+  overflow-x: auto;
+  color: #eef7fb;
+  font-size: 0.84rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+pre code {
+  color: inherit;
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.syntax-key {
+  color: #8fd6ff;
+}
+
+.syntax-string {
+  color: #ffd082;
+}
+
+.syntax-number {
+  color: #9de8b6;
+}
+
+.syntax-literal {
+  color: #ffb0a0;
+  font-weight: 720;
+}
+
+.syntax-gherkin-keyword {
+  color: #8fd6ff;
+  font-weight: 780;
+}
+
+.syntax-tag {
+  color: #ffb0a0;
+  font-weight: 720;
+}
+
+.syntax-comment {
+  color: #7f93a3;
+  font-style: italic;
+}
+
+.syntax-punctuation {
+  color: #b9c7d4;
+}
+
+.mermaid-diagram {
+  margin: 1.45rem 0 1.7rem;
+  padding: 16px;
+  overflow-x: auto;
+  background: linear-gradient(180deg, #fffaf7, #f7fbfc);
+  border: 1px solid var(--accent-line);
+  box-shadow: 0 10px 28px rgba(25, 38, 52, 0.08);
+  break-inside: avoid;
+}
+
+.mermaid-svg {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  max-height: 760px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.mermaid-node {
+  fill: #ffffff;
+  stroke: var(--accent-line);
+  stroke-width: 1.4;
+  filter: drop-shadow(0 5px 12px rgba(25, 38, 52, 0.12));
+}
+
+.mermaid-node-label {
+  fill: var(--brand-dark);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.mermaid-edge {
+  fill: none;
+  stroke: var(--accent-strong);
+  stroke-width: 2.2;
+}
+
+.mermaid-edge-label {
+  fill: var(--accent-strong);
+  paint-order: stroke;
+  stroke: #fffaf7;
+  stroke-width: 5;
+  stroke-linejoin: round;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 12px;
+  font-weight: 760;
+}
+
+.mermaid-diagram details {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.mermaid-diagram summary {
+  cursor: pointer;
+  color: var(--accent-strong);
+  font-weight: 720;
+}
+
+.mermaid-diagram details pre {
+  margin-top: 8px;
+  max-height: 240px;
+  background: var(--code-bg);
+  color: #eef7fb;
+  border: 1px solid var(--code-line);
+}
+
+.conversation-diagram {
+  margin: 1.45rem 0 1.75rem;
+  overflow-x: auto;
+  break-inside: avoid;
+}
+
+.conversation-svg {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.conversation-bg {
+  fill: #f7fbfc;
+  stroke: var(--accent-line);
+  stroke-width: 1.5;
+}
+
+.bubble-ai {
+  fill: #ffffff;
+  stroke: #bfd3dd;
+  stroke-width: 1.3;
+}
+
+.bubble-user {
+  fill: var(--accent-soft);
+  stroke: var(--accent-line);
+  stroke-width: 1.3;
+}
+
+.avatar-label {
+  fill: #ffffff;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.conversation-text {
+  fill: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 560;
+}
+
+.architecture-diagram {
+  margin: 1.45rem 0 1.75rem;
+  overflow-x: auto;
+  break-inside: avoid;
+}
+
+.architecture-svg {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+.arch-bg {
+  fill: #f7fbfc;
+  stroke: var(--accent-line);
+  stroke-width: 1.5;
+}
+
+.arch-zone {
+  fill: rgba(255, 255, 255, 0.64);
+  stroke-width: 1.2;
+  stroke-dasharray: 6 5;
+}
+
+.arch-zone-app {
+  stroke: #9fbdca;
+}
+
+.arch-zone-data {
+  stroke: var(--accent-line);
+}
+
+.arch-zone-title {
+  fill: var(--muted);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.arch-node {
+  fill: #ffffff;
+  stroke: #bfd3dd;
+  stroke-width: 1.4;
+  filter: drop-shadow(0 5px 12px rgba(25, 38, 52, 0.10));
+}
+
+.arch-user {
+  stroke: var(--accent-line);
+}
+
+.arch-app {
+  stroke: var(--brand);
+  stroke-width: 1.8;
+}
+
+.arch-ai {
+  fill: #eef7fb;
+}
+
+.arch-guardrail {
+  fill: var(--accent-soft);
+  stroke: var(--accent-line);
+}
+
+.arch-catalogue {
+  fill: #fbfdff;
+}
+
+.arch-db {
+  fill: #ffffff;
+  stroke: var(--accent-line);
+  stroke-width: 1.5;
+  filter: drop-shadow(0 5px 12px rgba(25, 38, 52, 0.10));
+}
+
+.arch-db-top {
+  fill: #fff8f4;
+  stroke: var(--accent-line);
+  stroke-width: 1.5;
+}
+
+.arch-title {
+  fill: var(--brand-dark);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 820;
+}
+
+.arch-subtitle {
+  fill: var(--muted);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 11px;
+  font-weight: 620;
+}
+
+.arch-arrow {
+  fill: none;
+  stroke: var(--accent-strong);
+  stroke-width: 2;
+}
+
+.arch-label-bg {
+  fill: rgba(255, 255, 255, 0.92);
+  stroke: rgba(242, 177, 153, 0.9);
+  stroke-width: 1;
+}
+
+.arch-label {
+  fill: var(--accent-strong);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 11px;
+  font-weight: 780;
+}
+
+.table-wrap {
+  width: 100%;
+  margin: 1.2rem 0 1.55rem;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(25, 38, 52, 0.06);
+}
+
+table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  line-height: 1.42;
+}
+
+thead {
+  display: table-header-group;
+}
+
+th {
+  background: linear-gradient(180deg, #fff4ee, #f7e2d8);
+  color: var(--brand-dark);
+  font-weight: 760;
+  text-align: left;
+}
+
+th, td {
+  padding: 10px 12px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+
+tr:last-child td {
+  border-bottom: 0;
+}
+
+th:last-child, td:last-child {
+  border-right: 0;
+}
+
+tbody tr:nth-child(even) {
+  background: var(--soft);
+}
+
+.align-right { text-align: right; }
+.align-center { text-align: center; }
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 58px;
+  color: var(--brand-dark);
+  background: linear-gradient(90deg, #fff0e8, #eef5f7);
+  border-top: 2px solid var(--accent-line);
+  font-size: 0.82rem;
+}
+
+@media (max-width: 900px) {
+  .page {
+    width: min(100%, calc(100% - 20px));
+    margin-top: 10px;
+  }
+
+  .cover {
+    min-height: 300px;
+    padding: 42px 28px;
+  }
+
+  .layout {
+    display: block;
+    padding: 28px 24px 42px;
+  }
+
+  .toc {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    margin: 0 0 30px;
+    padding: 0 0 20px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .footer {
+    display: block;
+    padding: 18px 24px;
+  }
+
+  table {
+    min-width: 560px;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 16mm 15mm 18mm;
+}
+
+@media print {
+  html {
+    font-size: 13px;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  .page {
+    width: auto;
+    margin: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  .cover {
+    min-height: 255mm;
+    padding: 45mm 24mm 28mm;
+    break-after: page;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .cover h1 {
+    font-size: 48pt;
+  }
+
+  .layout {
+    display: block;
+    padding: 0;
+  }
+
+  .toc {
+    position: static;
+    break-after: page;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    border: 0;
+  }
+
+  .toc h2 {
+    margin-bottom: 12mm;
+    color: var(--brand-dark);
+    font-size: 18pt;
+  }
+
+  .toc h2::before {
+    width: 34px;
+    height: 4px;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .toc ol {
+    column-count: 2;
+    column-gap: 12mm;
+    column-rule: 1px solid var(--accent-line);
+  }
+
+  .toc a {
+    margin: 0 0 1.5mm;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    color: var(--ink);
+    background: transparent;
+    font-size: 9.6pt;
+    line-height: 1.22;
+    break-inside: avoid;
+  }
+
+  .toc .toc-item a {
+    color: var(--brand-dark);
+    font-weight: 720;
+  }
+
+  .toc .toc-subitem a {
+    margin-left: 4mm;
+    padding: 0;
+    color: var(--muted);
+    font-size: 8.4pt;
+  }
+
+  h2 {
+    font-size: 20pt;
+    margin-top: 1.35rem;
+    break-after: avoid;
+  }
+
+  h3 {
+    font-size: 14pt;
+  }
+
+  p, li, table, pre {
+    break-inside: avoid;
+  }
+
+  .table-wrap {
+    overflow: visible;
+    box-shadow: none;
+  }
+
+  table {
+    min-width: 0;
+    font-size: 8.8pt;
+  }
+
+  th, td {
+    padding: 6px 7px;
+  }
+
+  pre {
+    white-space: pre-wrap;
+    font-size: 8.6pt;
+  }
+
+  .mermaid-diagram {
+    padding: 0;
+    overflow: visible;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .mermaid-svg {
+    width: auto;
+    max-width: 100%;
+    max-height: 168mm;
+  }
+
+  .mermaid-diagram details {
+    display: none;
+  }
+
+  .conversation-diagram {
+    overflow: visible;
+  }
+
+  .conversation-svg {
+    width: auto;
+    max-width: 100%;
+    max-height: 185mm;
+  }
+
+  .architecture-diagram {
+    overflow: visible;
+  }
+
+  .architecture-svg {
+    width: auto;
+    max-width: 100%;
+    max-height: 170mm;
+  }
+
+  .footer {
+    display: none;
+  }
+}
+</style>
+</head>
+<body>
+  <article class="page">
+    <header class="cover">
+      <p class="eyebrow">Whitepaper</p>
+      <h1>FinOps Response Portal MVP</h1>
+    </header>
+    <div class="layout">
+      <nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol><li class="toc-item"><a href="#purpose">Purpose</a></li>
+<li class="toc-item"><a href="#mvp-outcome">MVP Outcome</a></li>
+<li class="toc-item"><a href="#non-negotiable-constraint">Non-Negotiable Constraint</a></li>
+<li class="toc-item"><a href="#smallest-useful-scope">Smallest Useful Scope</a></li>
+<li class="toc-subitem"><a href="#in-scope">In Scope</a></li>
+<li class="toc-subitem"><a href="#out-of-scope">Out of Scope</a></li>
+<li class="toc-item"><a href="#mvp-user-journey">MVP User Journey</a></li>
+<li class="toc-item"><a href="#mvp-architecture">MVP Architecture</a></li>
+<li class="toc-item"><a href="#case-file-contract">Case File Contract</a></li>
+<li class="toc-item"><a href="#response-types">Response Types</a></li>
+<li class="toc-item"><a href="#response-contract">Response Contract</a></li>
+<li class="toc-item"><a href="#dashboard-export-contract">Dashboard Export Contract</a></li>
+<li class="toc-item"><a href="#s3-layout">S3 Layout</a></li>
+<li class="toc-item"><a href="#authorisation-rule">Authorisation Rule</a></li>
+<li class="toc-item"><a href="#prompt-boundary">Prompt Boundary</a></li>
+<li class="toc-item"><a href="#minimum-aws-ask">Minimum AWS Ask</a></li>
+<li class="toc-item"><a href="#mvp-success-criteria">MVP Success Criteria</a></li>
+<li class="toc-item"><a href="#mvp-build-order">MVP Build Order</a></li>
+<li class="toc-item"><a href="#final-mvp-statement">Final MVP Statement</a></li></ol></nav>
+      <main>
+        <h1 id="finops-response-portal-mvp">FinOps Response Portal MVP</h1>
+<h2 id="purpose">Purpose</h2>
+<p>This MVP defines the smallest useful version of the AI-assisted FinOps response workflow.</p>
+<p>The goal is not to build a broad FinOps agent. The goal is to remove the slowest, most manual part of the current process:</p>
+<ul>
+<li>FinOps sends a report item to the owning team.</li>
+</ul>
+<ul>
+<li>The team needs enough context to respond.</li>
+</ul>
+<ul>
+<li>The response must be structured, auditable, and dashboard-ready.</li>
+</ul>
+<ul>
+<li>Reassignment and disputes must be captured without mutating catalogues or AWS resources.</li>
+</ul>
+<p>The MVP delivers one controlled response workflow for one report feed, one approved model, one authenticated internal UI, and S3-backed state/export.</p>
+<h2 id="mvp-outcome">MVP Outcome</h2>
+<p>At the end of the MVP, FinOps can send a user a secure link for a specific report item. The user authenticates, reviews AI-assisted context, submits a controlled response, and the system writes an auditable S3-backed output that dashboards can consume.</p>
+<p>The value is:</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Value</th>
+<th class="align-left">MVP Mechanism</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">Faster responses</td>
+<td class="align-left">Case-specific explanation and guided response</td>
+</tr>
+<tr>
+<td class="align-left">Better dashboard commentary</td>
+<td class="align-left">Structured response schema</td>
+</tr>
+<tr>
+<td class="align-left">Lower chasing effort</td>
+<td class="align-left">Status captured centrally</td>
+</tr>
+<tr>
+<td class="align-left">Safer AI adoption</td>
+<td class="align-left">Bedrock only assists; backend owns all writes</td>
+</tr>
+<tr>
+<td class="align-left">Clear audit trail</td>
+<td class="align-left">View, draft, submit, and export events recorded</td>
+</tr>
+</tbody></table></div>
+<h2 id="non-negotiable-constraint">Non-Negotiable Constraint</h2>
+<p>The model is not the system of record and does not write to AWS services.</p>
+<figure class="code-block"><figcaption>text</figcaption><pre><code class="language-text">User confirms action
+Backend validates action
+Backend writes response/export/audit
+Bedrock only assists with explanation, classification, and drafting</code></pre></figure>
+<h2 id="smallest-useful-scope">Smallest Useful Scope</h2>
+<h3 id="in-scope">In Scope</h3>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Capability</th>
+<th class="align-left">MVP Definition</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">One report source</td>
+<td class="align-left">A pre-built case file per report item</td>
+</tr>
+<tr>
+<td class="align-left">One notification route</td>
+<td class="align-left">Email deep link to the internal app</td>
+</tr>
+<tr>
+<td class="align-left">One authenticated UI</td>
+<td class="align-left">Web page with case details and guided chat</td>
+</tr>
+<tr>
+<td class="align-left">One model</td>
+<td class="align-left">One approved Bedrock text model</td>
+</tr>
+<tr>
+<td class="align-left">Four response types</td>
+<td class="align-left">Justification, dispute, reassignment request, needs investigation</td>
+</tr>
+<tr>
+<td class="align-left">S3-backed storage</td>
+<td class="align-left">Case files, current response, history, export, audit</td>
+</tr>
+<tr>
+<td class="align-left">Dashboard export</td>
+<td class="align-left">One S3 prefix with dashboard-ready JSON or Parquet</td>
+</tr>
+<tr>
+<td class="align-left">Audit events</td>
+<td class="align-left">Views, model assists, submissions, export writes</td>
+</tr>
+</tbody></table></div>
+<h3 id="out-of-scope">Out of Scope</h3>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Excluded</th>
+<th class="align-left">Reason</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">Autonomous remediation</td>
+<td class="align-left">Not required to capture FinOps responses</td>
+</tr>
+<tr>
+<td class="align-left">Raw CUR access from the app</td>
+<td class="align-left">Case files are generated upstream</td>
+</tr>
+<tr>
+<td class="align-left">Live AWS infrastructure inspection</td>
+<td class="align-left">The app does not diagnose resources directly</td>
+</tr>
+<tr>
+<td class="align-left">IAM, tag, billing, or catalogue mutation</td>
+<td class="align-left">MVP captures requests only</td>
+</tr>
+<tr>
+<td class="align-left">Broad chatbot over all cost data</td>
+<td class="align-left">Interaction is scoped to one case</td>
+</tr>
+<tr>
+<td class="align-left">Direct browser-to-S3 writes</td>
+<td class="align-left">Backend must validate and audit all writes</td>
+</tr>
+<tr>
+<td class="align-left">Multiple model providers</td>
+<td class="align-left">One approved model is enough to prove value</td>
+</tr>
+</tbody></table></div>
+<h2 id="mvp-user-journey">MVP User Journey</h2>
+<figure class="mermaid-diagram"><svg id="mermaid-182e36124e87" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="mermaid-svg flowchart" style="max-width: 276px; background-color: transparent;" viewBox="0 0 276 1102" role="graphics-document document" aria-roledescription="flowchart-v2"><style>#mermaid-182e36124e87{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:16px;fill:#0d3448;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#mermaid-182e36124e87 .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#mermaid-182e36124e87 .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#mermaid-182e36124e87 .error-icon{fill:#f7fbfc;}#mermaid-182e36124e87 .error-text{fill:#080403;stroke:#080403;}#mermaid-182e36124e87 .edge-thickness-normal{stroke-width:1px;}#mermaid-182e36124e87 .edge-thickness-thick{stroke-width:3.5px;}#mermaid-182e36124e87 .edge-pattern-solid{stroke-dasharray:0;}#mermaid-182e36124e87 .edge-thickness-invisible{stroke-width:0;fill:none;}#mermaid-182e36124e87 .edge-pattern-dashed{stroke-dasharray:3;}#mermaid-182e36124e87 .edge-pattern-dotted{stroke-dasharray:2;}#mermaid-182e36124e87 .marker{fill:#b83218;stroke:#b83218;}#mermaid-182e36124e87 .marker.cross{stroke:#b83218;}#mermaid-182e36124e87 svg{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:16px;}#mermaid-182e36124e87 p{margin:0;}#mermaid-182e36124e87 .label{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:#0d3448;}#mermaid-182e36124e87 .cluster-label text{fill:#080403;}#mermaid-182e36124e87 .cluster-label span{color:#080403;}#mermaid-182e36124e87 .cluster-label span p{background-color:transparent;}#mermaid-182e36124e87 .label text,#mermaid-182e36124e87 span{fill:#0d3448;color:#0d3448;}#mermaid-182e36124e87 .node rect,#mermaid-182e36124e87 .node circle,#mermaid-182e36124e87 .node ellipse,#mermaid-182e36124e87 .node polygon,#mermaid-182e36124e87 .node path{fill:#ffffff;stroke:#f2b199;stroke-width:1px;}#mermaid-182e36124e87 .rough-node .label text,#mermaid-182e36124e87 .node .label text,#mermaid-182e36124e87 .image-shape .label,#mermaid-182e36124e87 .icon-shape .label{text-anchor:middle;}#mermaid-182e36124e87 .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#mermaid-182e36124e87 .rough-node .label,#mermaid-182e36124e87 .node .label,#mermaid-182e36124e87 .image-shape .label,#mermaid-182e36124e87 .icon-shape .label{text-align:center;}#mermaid-182e36124e87 .node.clickable{cursor:pointer;}#mermaid-182e36124e87 .root .anchor path{fill:#b83218!important;stroke-width:0;stroke:#b83218;}#mermaid-182e36124e87 .arrowheadPath{fill:#0b0b0b;}#mermaid-182e36124e87 .edgePath .path{stroke:#b83218;stroke-width:1px;}#mermaid-182e36124e87 .flowchart-link{stroke:#b83218;fill:none;}#mermaid-182e36124e87 .edgeLabel{background-color:#ffffff;text-align:center;}#mermaid-182e36124e87 .edgeLabel p{background-color:#ffffff;}#mermaid-182e36124e87 .edgeLabel rect{opacity:0.5;background-color:#ffffff;fill:#ffffff;}#mermaid-182e36124e87 .labelBkg{background-color:rgba(255, 255, 255, 0.5);}#mermaid-182e36124e87 .cluster rect{fill:#f7fbfc;stroke:#f2b199;stroke-width:1px;}#mermaid-182e36124e87 .cluster text{fill:#080403;}#mermaid-182e36124e87 .cluster span{color:#080403;}#mermaid-182e36124e87 div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:12px;background:#f7fbfc;border:1px solid hsl(192, 5.4545454545%, 87.8431372549%);border-radius:2px;pointer-events:none;z-index:100;}#mermaid-182e36124e87 .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#0d3448;}#mermaid-182e36124e87 rect.text{fill:none;stroke-width:0;}#mermaid-182e36124e87 .icon-shape,#mermaid-182e36124e87 .image-shape{background-color:#ffffff;text-align:center;}#mermaid-182e36124e87 .icon-shape p,#mermaid-182e36124e87 .image-shape p{background-color:#ffffff;padding:2px;}#mermaid-182e36124e87 .icon-shape .label rect,#mermaid-182e36124e87 .image-shape .label rect{opacity:0.5;background-color:#ffffff;fill:#ffffff;}#mermaid-182e36124e87 .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#mermaid-182e36124e87 .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#mermaid-182e36124e87 .node .neo-node{stroke:#f2b199;}#mermaid-182e36124e87 [data-look="neo"].node rect,#mermaid-182e36124e87 [data-look="neo"].cluster rect,#mermaid-182e36124e87 [data-look="neo"].node polygon{stroke:url(#mermaid-182e36124e87-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-182e36124e87 [data-look="neo"].node path{stroke:url(#mermaid-182e36124e87-gradient);stroke-width:1px;}#mermaid-182e36124e87 [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-182e36124e87 [data-look="neo"].node .neo-line path{stroke:#f2b199;filter:none;}#mermaid-182e36124e87 [data-look="neo"].node circle{stroke:url(#mermaid-182e36124e87-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-182e36124e87 [data-look="neo"].node circle .state-start{fill:#000000;}#mermaid-182e36124e87 [data-look="neo"].icon-shape .icon{fill:url(#mermaid-182e36124e87-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-182e36124e87 [data-look="neo"].icon-shape .icon-neo path{stroke:url(#mermaid-182e36124e87-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-182e36124e87 :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g><marker id="mermaid-182e36124e87_flowchart-v2-pointEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-182e36124e87_flowchart-v2-pointStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="4.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 5 L 10 10 L 10 0 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-182e36124e87_flowchart-v2-pointEnd-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="11.5" refY="7" markerUnits="userSpaceOnUse" markerWidth="10.5" markerHeight="14" orient="auto"><path d="M 0 0 L 11.5 7 L 0 14 z" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-182e36124e87_flowchart-v2-pointStart-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="1" refY="7" markerUnits="userSpaceOnUse" markerWidth="11.5" markerHeight="14" orient="auto"><polygon points="0,7 11.5,14 11.5,0" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-182e36124e87_flowchart-v2-circleEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="11" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-182e36124e87_flowchart-v2-circleStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-182e36124e87_flowchart-v2-circleEnd-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refY="5" refX="12.25" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-182e36124e87_flowchart-v2-circleStart-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-2" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-182e36124e87_flowchart-v2-crossEnd" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="12" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-182e36124e87_flowchart-v2-crossStart" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="-1" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-182e36124e87_flowchart-v2-crossEnd-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="17.7" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5;"/></marker><marker id="mermaid-182e36124e87_flowchart-v2-crossStart-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="-3.5" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5; stroke-dasharray: 1, 0;"/></marker><g class="root"><g class="clusters"/><g class="edgePaths"><path d="M138,86L138,90.5C138,95,138,104,138,112.333C138,120.667,138,128.333,138,132.167L138,136" id="mermaid-182e36124e87-L_report_email_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_report_email_0" data-points="W3sieCI6MTM4LCJ5Ijo4Nn0seyJ4IjoxMzgsInkiOjExM30seyJ4IjoxMzgsInkiOjE0MH1d" data-look="classic" marker-end="url(#mermaid-182e36124e87_flowchart-v2-pointEnd)"/><path d="M138,218L138,222.5C138,227,138,236,138,244.333C138,252.667,138,260.333,138,264.167L138,268" id="mermaid-182e36124e87-L_email_auth_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_email_auth_0" data-points="W3sieCI6MTM4LCJ5IjoyMTh9LHsieCI6MTM4LCJ5IjoyNDV9LHsieCI6MTM4LCJ5IjoyNzJ9XQ==" data-look="classic" marker-end="url(#mermaid-182e36124e87_flowchart-v2-pointEnd)"/><path d="M138,326L138,330.5C138,335,138,344,138,352.333C138,360.667,138,368.333,138,372.167L138,376" id="mermaid-182e36124e87-L_auth_case_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_auth_case_0" data-points="W3sieCI6MTM4LCJ5IjozMjZ9LHsieCI6MTM4LCJ5IjozNTN9LHsieCI6MTM4LCJ5IjozODB9XQ==" data-look="classic" marker-end="url(#mermaid-182e36124e87_flowchart-v2-pointEnd)"/><path d="M138,458L138,462.5C138,467,138,476,138,484.333C138,492.667,138,500.333,138,504.167L138,508" id="mermaid-182e36124e87-L_case_assist_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_case_assist_0" data-points="W3sieCI6MTM4LCJ5Ijo0NTh9LHsieCI6MTM4LCJ5Ijo0ODV9LHsieCI6MTM4LCJ5Ijo1MTJ9XQ==" data-look="classic" marker-end="url(#mermaid-182e36124e87_flowchart-v2-pointEnd)"/><path d="M138,590L138,594.5C138,599,138,608,138,616.333C138,624.667,138,632.333,138,636.167L138,640" id="mermaid-182e36124e87-L_assist_choose_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_assist_choose_0" data-points="W3sieCI6MTM4LCJ5Ijo1OTB9LHsieCI6MTM4LCJ5Ijo2MTd9LHsieCI6MTM4LCJ5Ijo2NDR9XQ==" data-look="classic" marker-end="url(#mermaid-182e36124e87_flowchart-v2-pointEnd)"/><path d="M138,722L138,726.5C138,731,138,740,138,748.333C138,756.667,138,764.333,138,768.167L138,772" id="mermaid-182e36124e87-L_choose_confirm_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_choose_confirm_0" data-points="W3sieCI6MTM4LCJ5Ijo3MjJ9LHsieCI6MTM4LCJ5Ijo3NDl9LHsieCI6MTM4LCJ5Ijo3NzZ9XQ==" data-look="classic" marker-end="url(#mermaid-182e36124e87_flowchart-v2-pointEnd)"/><path d="M138,854L138,858.5C138,863,138,872,138,880.333C138,888.667,138,896.333,138,900.167L138,904" id="mermaid-182e36124e87-L_confirm_write_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_confirm_write_0" data-points="W3sieCI6MTM4LCJ5Ijo4NTR9LHsieCI6MTM4LCJ5Ijo4ODF9LHsieCI6MTM4LCJ5Ijo5MDh9XQ==" data-look="classic" marker-end="url(#mermaid-182e36124e87_flowchart-v2-pointEnd)"/><path d="M138,986L138,990.5C138,995,138,1004,138,1012.333C138,1020.667,138,1028.333,138,1032.167L138,1036" id="mermaid-182e36124e87-L_write_dashboard_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_write_dashboard_0" data-points="W3sieCI6MTM4LCJ5Ijo5ODZ9LHsieCI6MTM4LCJ5IjoxMDEzfSx7IngiOjEzOCwieSI6MTA0MH1d" data-look="classic" marker-end="url(#mermaid-182e36124e87_flowchart-v2-pointEnd)"/></g><g class="edgeLabels"><g class="edgeLabel"><g class="label" data-id="L_report_email_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_email_auth_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_auth_case_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_case_assist_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_assist_choose_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_choose_confirm_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_confirm_write_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_write_dashboard_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g></g><g class="nodes"><g class="node default" id="mermaid-182e36124e87-flowchart-report-0" data-look="classic" transform="translate(138, 47)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"/><g class="label" style="" transform="translate(-100, -24)"><rect/><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>Report pipeline creates case file</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-182e36124e87-flowchart-email-1" data-look="classic" transform="translate(138, 179)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"/><g class="label" style="" transform="translate(-100, -24)"><rect/><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>Email contains secure case link</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-182e36124e87-flowchart-auth-2" data-look="classic" transform="translate(138, 299)"><rect class="basic label-container" style="" x="-128.2734375" y="-27" width="256.546875" height="54"/><g class="label" style="" transform="translate(-98.2734375, -12)"><rect/><foreignObject width="196.546875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>User authenticates via SSO</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-182e36124e87-flowchart-case-3" data-look="classic" transform="translate(138, 419)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"/><g class="label" style="" transform="translate(-100, -24)"><rect/><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>Portal loads one authorised case</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-182e36124e87-flowchart-assist-4" data-look="classic" transform="translate(138, 551)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"/><g class="label" style="" transform="translate(-100, -24)"><rect/><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>AI explains context and asks guided questions</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-182e36124e87-flowchart-choose-5" data-look="classic" transform="translate(138, 683)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"/><g class="label" style="" transform="translate(-100, -24)"><rect/><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>User chooses response type</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-182e36124e87-flowchart-confirm-6" data-look="classic" transform="translate(138, 815)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"/><g class="label" style="" transform="translate(-100, -24)"><rect/><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>User confirms final structured response</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-182e36124e87-flowchart-write-7" data-look="classic" transform="translate(138, 947)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"/><g class="label" style="" transform="translate(-100, -24)"><rect/><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>Backend writes response, history, export, audit</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-182e36124e87-flowchart-dashboard-8" data-look="classic" transform="translate(138, 1067)"><rect class="basic label-container" style="" x="-127.8359375" y="-27" width="255.671875" height="54"/><g class="label" style="" transform="translate(-97.8359375, -12)"><rect/><foreignObject width="195.671875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>Dashboard reads S3 export</p></span></div></foreignObject></g></g></g></g></g><defs><filter id="mermaid-182e36124e87-drop-shadow" height="130%" width="130%"><feDropShadow dx="4" dy="4" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"/></filter></defs><defs><filter id="mermaid-182e36124e87-drop-shadow-small" height="150%" width="150%"><feDropShadow dx="2" dy="2" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"/></filter></defs><linearGradient id="mermaid-182e36124e87-gradient" gradientUnits="objectBoundingBox" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#f2b199" stop-opacity="1"/><stop offset="100%" stop-color="hsl(20.8695652174, 60%, 85.4901960784%)" stop-opacity="1"/></linearGradient></svg><details><summary>Mermaid source</summary><pre><code>flowchart TD
+    report[&quot;Report pipeline creates case file&quot;]
+    email[&quot;Email contains secure case link&quot;]
+    auth[&quot;User authenticates via SSO&quot;]
+    case[&quot;Portal loads one authorised case&quot;]
+    assist[&quot;AI explains context and asks guided questions&quot;]
+    choose[&quot;User chooses response type&quot;]
+    confirm[&quot;User confirms final structured response&quot;]
+    write[&quot;Backend writes response, history, export, audit&quot;]
+    dashboard[&quot;Dashboard reads S3 export&quot;]
+
+    report --&gt; email --&gt; auth --&gt; case --&gt; assist --&gt; choose --&gt; confirm --&gt; write --&gt; dashboard</code></pre></details></figure>
+<h2 id="mvp-architecture">MVP Architecture</h2>
+<figure class="mermaid-diagram"><svg id="mermaid-6828b2aedde9" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="mermaid-svg flowchart" style="max-width: 1068.5px; background-color: transparent;" viewBox="0 0 1068.5 703.5731811523438" role="graphics-document document" aria-roledescription="flowchart-v2"><style>#mermaid-6828b2aedde9{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:16px;fill:#0d3448;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#mermaid-6828b2aedde9 .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#mermaid-6828b2aedde9 .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#mermaid-6828b2aedde9 .error-icon{fill:#f7fbfc;}#mermaid-6828b2aedde9 .error-text{fill:#080403;stroke:#080403;}#mermaid-6828b2aedde9 .edge-thickness-normal{stroke-width:1px;}#mermaid-6828b2aedde9 .edge-thickness-thick{stroke-width:3.5px;}#mermaid-6828b2aedde9 .edge-pattern-solid{stroke-dasharray:0;}#mermaid-6828b2aedde9 .edge-thickness-invisible{stroke-width:0;fill:none;}#mermaid-6828b2aedde9 .edge-pattern-dashed{stroke-dasharray:3;}#mermaid-6828b2aedde9 .edge-pattern-dotted{stroke-dasharray:2;}#mermaid-6828b2aedde9 .marker{fill:#b83218;stroke:#b83218;}#mermaid-6828b2aedde9 .marker.cross{stroke:#b83218;}#mermaid-6828b2aedde9 svg{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:16px;}#mermaid-6828b2aedde9 p{margin:0;}#mermaid-6828b2aedde9 .label{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:#0d3448;}#mermaid-6828b2aedde9 .cluster-label text{fill:#080403;}#mermaid-6828b2aedde9 .cluster-label span{color:#080403;}#mermaid-6828b2aedde9 .cluster-label span p{background-color:transparent;}#mermaid-6828b2aedde9 .label text,#mermaid-6828b2aedde9 span{fill:#0d3448;color:#0d3448;}#mermaid-6828b2aedde9 .node rect,#mermaid-6828b2aedde9 .node circle,#mermaid-6828b2aedde9 .node ellipse,#mermaid-6828b2aedde9 .node polygon,#mermaid-6828b2aedde9 .node path{fill:#ffffff;stroke:#f2b199;stroke-width:1px;}#mermaid-6828b2aedde9 .rough-node .label text,#mermaid-6828b2aedde9 .node .label text,#mermaid-6828b2aedde9 .image-shape .label,#mermaid-6828b2aedde9 .icon-shape .label{text-anchor:middle;}#mermaid-6828b2aedde9 .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#mermaid-6828b2aedde9 .rough-node .label,#mermaid-6828b2aedde9 .node .label,#mermaid-6828b2aedde9 .image-shape .label,#mermaid-6828b2aedde9 .icon-shape .label{text-align:center;}#mermaid-6828b2aedde9 .node.clickable{cursor:pointer;}#mermaid-6828b2aedde9 .root .anchor path{fill:#b83218!important;stroke-width:0;stroke:#b83218;}#mermaid-6828b2aedde9 .arrowheadPath{fill:#0b0b0b;}#mermaid-6828b2aedde9 .edgePath .path{stroke:#b83218;stroke-width:1px;}#mermaid-6828b2aedde9 .flowchart-link{stroke:#b83218;fill:none;}#mermaid-6828b2aedde9 .edgeLabel{background-color:#ffffff;text-align:center;}#mermaid-6828b2aedde9 .edgeLabel p{background-color:#ffffff;}#mermaid-6828b2aedde9 .edgeLabel rect{opacity:0.5;background-color:#ffffff;fill:#ffffff;}#mermaid-6828b2aedde9 .labelBkg{background-color:rgba(255, 255, 255, 0.5);}#mermaid-6828b2aedde9 .cluster rect{fill:#f7fbfc;stroke:#f2b199;stroke-width:1px;}#mermaid-6828b2aedde9 .cluster text{fill:#080403;}#mermaid-6828b2aedde9 .cluster span{color:#080403;}#mermaid-6828b2aedde9 div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:12px;background:#f7fbfc;border:1px solid hsl(192, 5.4545454545%, 87.8431372549%);border-radius:2px;pointer-events:none;z-index:100;}#mermaid-6828b2aedde9 .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#0d3448;}#mermaid-6828b2aedde9 rect.text{fill:none;stroke-width:0;}#mermaid-6828b2aedde9 .icon-shape,#mermaid-6828b2aedde9 .image-shape{background-color:#ffffff;text-align:center;}#mermaid-6828b2aedde9 .icon-shape p,#mermaid-6828b2aedde9 .image-shape p{background-color:#ffffff;padding:2px;}#mermaid-6828b2aedde9 .icon-shape .label rect,#mermaid-6828b2aedde9 .image-shape .label rect{opacity:0.5;background-color:#ffffff;fill:#ffffff;}#mermaid-6828b2aedde9 .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#mermaid-6828b2aedde9 .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#mermaid-6828b2aedde9 .node .neo-node{stroke:#f2b199;}#mermaid-6828b2aedde9 [data-look="neo"].node rect,#mermaid-6828b2aedde9 [data-look="neo"].cluster rect,#mermaid-6828b2aedde9 [data-look="neo"].node polygon{stroke:url(#mermaid-6828b2aedde9-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-6828b2aedde9 [data-look="neo"].node path{stroke:url(#mermaid-6828b2aedde9-gradient);stroke-width:1px;}#mermaid-6828b2aedde9 [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-6828b2aedde9 [data-look="neo"].node .neo-line path{stroke:#f2b199;filter:none;}#mermaid-6828b2aedde9 [data-look="neo"].node circle{stroke:url(#mermaid-6828b2aedde9-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-6828b2aedde9 [data-look="neo"].node circle .state-start{fill:#000000;}#mermaid-6828b2aedde9 [data-look="neo"].icon-shape .icon{fill:url(#mermaid-6828b2aedde9-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-6828b2aedde9 [data-look="neo"].icon-shape .icon-neo path{stroke:url(#mermaid-6828b2aedde9-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-6828b2aedde9 :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g><marker id="mermaid-6828b2aedde9_flowchart-v2-pointEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-6828b2aedde9_flowchart-v2-pointStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="4.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 5 L 10 10 L 10 0 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-6828b2aedde9_flowchart-v2-pointEnd-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="11.5" refY="7" markerUnits="userSpaceOnUse" markerWidth="10.5" markerHeight="14" orient="auto"><path d="M 0 0 L 11.5 7 L 0 14 z" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-6828b2aedde9_flowchart-v2-pointStart-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="1" refY="7" markerUnits="userSpaceOnUse" markerWidth="11.5" markerHeight="14" orient="auto"><polygon points="0,7 11.5,14 11.5,0" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-6828b2aedde9_flowchart-v2-circleEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="11" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-6828b2aedde9_flowchart-v2-circleStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-6828b2aedde9_flowchart-v2-circleEnd-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refY="5" refX="12.25" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-6828b2aedde9_flowchart-v2-circleStart-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-2" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-6828b2aedde9_flowchart-v2-crossEnd" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="12" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-6828b2aedde9_flowchart-v2-crossStart" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="-1" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-6828b2aedde9_flowchart-v2-crossEnd-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="17.7" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5;"/></marker><marker id="mermaid-6828b2aedde9_flowchart-v2-crossStart-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="-3.5" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5; stroke-dasharray: 1, 0;"/></marker><g class="root"><g class="clusters"/><g class="edgePaths"><path d="M101.781,273.002L122.289,273.002C142.797,273.002,183.813,273.002,224.161,273.002C264.51,273.002,304.193,273.002,324.034,273.002L343.875,273.002" id="mermaid-6828b2aedde9-L_user_portal_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_user_portal_0" data-points="W3sieCI6MTAxLjc4MTI1LCJ5IjoyNzMuMDAyMTc0Mzc3NDQxNH0seyJ4IjoyMjQuODI4MTI1LCJ5IjoyNzMuMDAyMTc0Mzc3NDQxNH0seyJ4IjozNDcuODc1LCJ5IjoyNzMuMDAyMTc0Mzc3NDQxNH1d" data-look="classic" marker-end="url(#mermaid-6828b2aedde9_flowchart-v2-pointEnd)"/><path d="M493.018,246.002L527.3,212.574C561.582,179.147,630.147,112.291,694.023,78.863C757.898,45.436,817.086,45.436,846.68,45.436L876.273,45.436" id="mermaid-6828b2aedde9-L_portal_s3case_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_portal_s3case_0" data-points="W3sieCI6NDkzLjAxODIwNjA4MTQ0Mzk2LCJ5IjoyNDYuMDAyMTc0Mzc3NDQxNH0seyJ4Ijo2OTguNzEwOTM3NSwieSI6NDUuNDM1NjM0NjEzMDM3MTF9LHsieCI6ODgwLjI3MzQzNzUsInkiOjQ1LjQzNTYzNDYxMzAzNzExfV0=" data-look="classic" marker-end="url(#mermaid-6828b2aedde9_flowchart-v2-pointEnd)"/><path d="M507.52,246.002L539.385,225.611C571.25,205.219,634.981,164.436,685.508,146.718C736.034,129,773.358,134.347,792.019,137.02L810.681,139.694" id="mermaid-6828b2aedde9-L_portal_bedrock_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_portal_bedrock_0" data-points="W3sieCI6NTA3LjUyMDIyMzAyMjY0NTU1LCJ5IjoyNDYuMDAyMTc0Mzc3NDQxNH0seyJ4Ijo2OTguNzEwOTM3NSwieSI6MTIzLjY1MzQ1MTkxOTU1NTY2fSx7IngiOjgxNC42NDA2MjUsInkiOjE0MC4yNjA5Njc4MTU3ODg3fV0=" data-look="classic" marker-end="url(#mermaid-6828b2aedde9_flowchart-v2-pointEnd)"/><path d="M814.641,176.175L795.319,179.052C775.997,181.929,737.354,187.683,692.966,199.106C648.578,210.528,598.444,227.62,573.378,236.166L548.311,244.711" id="mermaid-6828b2aedde9-L_bedrock_portal_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_bedrock_portal_0" data-points="W3sieCI6ODE0LjY0MDYyNSwieSI6MTc2LjE3NTEzNTEzNDMwOTM2fSx7IngiOjY5OC43MTA5Mzc1LCJ5IjoxOTMuNDM2NzIxODAxNzU3OH0seyJ4Ijo1NDQuNTI1MDA5MjQ0NTI5MywieSI6MjQ2LjAwMjE3NDM3NzQ0MTR9XQ==" data-look="classic" marker-end="url(#mermaid-6828b2aedde9_flowchart-v2-pointEnd)"/><path d="M582.781,273.002L602.103,273.002C621.424,273.002,660.068,273.002,705.793,273.002C751.518,273.002,804.326,273.002,830.729,273.002L857.133,273.002" id="mermaid-6828b2aedde9-L_portal_s3state_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_portal_s3state_0" data-points="W3sieCI6NTgyLjc4MTI1LCJ5IjoyNzMuMDAyMTc0Mzc3NDQxNH0seyJ4Ijo2OTguNzEwOTM3NSwieSI6MjczLjAwMjE3NDM3NzQ0MTR9LHsieCI6ODYxLjEzMjgxMjUsInkiOjI3My4wMDIxNzQzNzc0NDE0fV0=" data-look="classic" marker-end="url(#mermaid-6828b2aedde9_flowchart-v2-pointEnd)"/><path d="M514.182,300.002L544.937,316.999C575.692,333.997,637.201,367.991,693.325,384.989C749.448,401.986,800.185,401.986,825.553,401.986L850.922,401.986" id="mermaid-6828b2aedde9-L_portal_s3history_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_portal_s3history_0" data-points="W3sieCI6NTE0LjE4MTg4NTE0Nzc5LCJ5IjozMDAuMDAyMTc0Mzc3NDQxNH0seyJ4Ijo2OTguNzEwOTM3NSwieSI6NDAxLjk4NTgxNjk1NTU2NjR9LHsieCI6ODU0LjkyMTg3NSwieSI6NDAxLjk4NTgxNjk1NTU2NjR9XQ==" data-look="classic" marker-end="url(#mermaid-6828b2aedde9_flowchart-v2-pointEnd)"/><path d="M494.513,300.002L528.546,331.487C562.579,362.972,630.645,425.942,689.833,461.948C749.021,497.954,799.331,506.996,824.486,511.516L849.641,516.037" id="mermaid-6828b2aedde9-L_portal_s3export_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_portal_s3export_0" data-points="W3sieCI6NDk0LjUxMzA3Nzk2NDA0MzkzLCJ5IjozMDAuMDAyMTc0Mzc3NDQxNH0seyJ4Ijo2OTguNzEwOTM3NSwieSI6NDg4LjkxMjYxMTAwNzY5MDQzfSx7IngiOjg1My41NzgxMjUsInkiOjUxNi43NDQ2ODUyNjk5ODA0fV0=" data-look="classic" marker-end="url(#mermaid-6828b2aedde9_flowchart-v2-pointEnd)"/><path d="M481.687,300.002L517.857,359.703C554.028,419.404,626.369,538.805,692.204,598.506C758.039,658.207,817.367,658.207,847.031,658.207L876.695,658.207" id="mermaid-6828b2aedde9-L_portal_s3audit_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_portal_s3audit_0" data-points="W3sieCI6NDgxLjY4NjUzOTA4MjQxMTYsInkiOjMwMC4wMDIxNzQzNzc0NDE0fSx7IngiOjY5OC43MTA5Mzc1LCJ5Ijo2NTguMjA2NzQ4OTYyNDAyM30seyJ4Ijo4ODAuNjk1MzEyNSwieSI6NjU4LjIwNjc0ODk2MjQwMjN9XQ==" data-look="classic" marker-end="url(#mermaid-6828b2aedde9_flowchart-v2-pointEnd)"/><path d="M561.898,597.166L584.701,593.142C607.503,589.118,653.107,581.071,701.063,572.71C749.019,564.349,799.328,555.675,824.482,551.338L849.636,547.001" id="mermaid-6828b2aedde9-L_dashboard_s3export_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_dashboard_s3export_0" data-points="W3sieCI6NTYxLjg5ODQzNzUsInkiOjU5Ny4xNjU1NjIzMDU4OTE2fSx7IngiOjY5OC43MTA5Mzc1LCJ5Ijo1NzMuMDIzMDc3MDExMTA4NH0seyJ4Ijo4NTMuNTc4MTI1LCJ5Ijo1NDYuMzIxMTc1NzUyMTc5Mn1d" data-look="classic" marker-end="url(#mermaid-6828b2aedde9_flowchart-v2-pointEnd)"/></g><g class="edgeLabels"><g class="edgeLabel" transform="translate(224.828125, 273.0021743774414)"><g class="label" data-id="L_user_portal_0" transform="translate(-96.046875, -12)"><foreignObject width="192.09375" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"><p>SSO-authenticated HTTPS</p></span></div></foreignObject></g></g><g class="edgeLabel" transform="translate(698.7109375, 45.43563461303711)"><g class="label" data-id="L_portal_s3case_0" transform="translate(-74.2578125, -12)"><foreignObject width="148.515625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"><p>read narrow case file</p></span></div></foreignObject></g></g><g class="edgeLabel" transform="translate(652.43769, 153.2651)"><g class="label" data-id="L_portal_bedrock_0" transform="translate(-71.1484375, -12)"><foreignObject width="142.296875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"><p>send narrow prompt</p></span></div></foreignObject></g></g><g class="edgeLabel" transform="translate(677.08691, 200.80884)"><g class="label" data-id="L_bedrock_portal_0" transform="translate(-88.9296875, -12)"><foreignObject width="177.859375" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"><p>draft/explain/classify only</p></span></div></foreignObject></g></g><g class="edgeLabel" transform="translate(698.7109375, 273.0021743774414)"><g class="label" data-id="L_portal_s3state_0" transform="translate(-79.1484375, -12)"><foreignObject width="158.296875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"><p>write current response</p></span></div></foreignObject></g></g><g class="edgeLabel" transform="translate(698.7109375, 401.9858169555664)"><g class="label" data-id="L_portal_s3history_0" transform="translate(-48.4921875, -12)"><foreignObject width="96.984375" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"><p>append event</p></span></div></foreignObject></g></g><g class="edgeLabel" transform="translate(654.36277, 447.8846)"><g class="label" data-id="L_portal_s3export_0" transform="translate(-81.8203125, -12)"><foreignObject width="163.640625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"><p>write dashboard record</p></span></div></foreignObject></g></g><g class="edgeLabel" transform="translate(698.7109375, 658.2067489624023)"><g class="label" data-id="L_portal_s3audit_0" transform="translate(-58.2578125, -12)"><foreignObject width="116.515625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"><p>write audit event</p></span></div></foreignObject></g></g><g class="edgeLabel" transform="translate(698.7109375, 573.0230770111084)"><g class="label" data-id="L_dashboard_s3export_0" transform="translate(-32.9140625, -12)"><foreignObject width="65.828125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"><p>read only</p></span></div></foreignObject></g></g></g><g class="nodes"><g class="node default" id="mermaid-6828b2aedde9-flowchart-user-0" data-look="classic" transform="translate(54.890625, 273.0021743774414)"><rect class="basic label-container" style="" x="-46.890625" y="-27" width="93.78125" height="54"/><g class="label" style="" transform="translate(-16.890625, -12)"><rect/><foreignObject width="33.78125" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>User</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-6828b2aedde9-flowchart-portal-1" data-look="classic" transform="translate(465.328125, 273.0021743774414)"><rect class="basic label-container" style="" x="-117.453125" y="-27" width="234.90625" height="54"/><g class="label" style="" transform="translate(-87.453125, -12)"><rect/><foreignObject width="174.90625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>Internal Web Portal / API</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-6828b2aedde9-flowchart-bedrock-2" data-look="classic" transform="translate(937.5703125, 157.87126922607422)"><rect class="basic label-container" style="" x="-122.9296875" y="-27" width="245.859375" height="54"/><g class="label" style="" transform="translate(-92.9296875, -12)"><rect/><foreignObject width="185.859375" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>Amazon Bedrock Runtime</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-6828b2aedde9-flowchart-s3case-3" data-look="classic" transform="translate(937.5703125, 45.43563461303711)"><path d="M0,11.95708882222512 a57.296875,11.95708882222512 0,0,0 114.59375,0 a57.296875,11.95708882222512 0,0,0 -114.59375,0 l0,50.95708882222512 a57.296875,11.95708882222512 0,0,0 114.59375,0 l0,-50.95708882222512" class="basic label-container outer-path" style="" transform="translate(-57.296875, -37.43563323333768)"/><g class="label" style="" transform="translate(-49.796875, -2)"><rect/><foreignObject width="99.59375" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>S3 Case Files</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-6828b2aedde9-flowchart-s3state-4" data-look="classic" transform="translate(937.5703125, 273.0021743774414)"><path d="M0,13.753936122357175 a76.4375,13.753936122357175 0,0,0 152.875,0 a76.4375,13.753936122357175 0,0,0 -152.875,0 l0,52.753936122357175 a76.4375,13.753936122357175 0,0,0 152.875,0 l0,-52.753936122357175" class="basic label-container outer-path" style="" transform="translate(-76.4375, -40.13090418353576)"/><g class="label" style="" transform="translate(-68.9375, -2)"><rect/><foreignObject width="137.875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>S3 Response State</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-6828b2aedde9-flowchart-s3history-5" data-look="classic" transform="translate(937.5703125, 401.9858169555664)"><path d="M0,14.23515797405673 a82.6484375,14.23515797405673 0,0,0 165.296875,0 a82.6484375,14.23515797405673 0,0,0 -165.296875,0 l0,53.23515797405673 a82.6484375,14.23515797405673 0,0,0 165.296875,0 l0,-53.23515797405673" class="basic label-container outer-path" style="" transform="translate(-82.6484375, -40.8527369610851)"/><g class="label" style="" transform="translate(-75.1484375, -2)"><rect/><foreignObject width="150.296875" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>S3 Response History</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-6828b2aedde9-flowchart-s3export-6" data-look="classic" transform="translate(937.5703125, 531.8394050598145)"><path d="M0,14.3339021918831 a83.9921875,14.3339021918831 0,0,0 167.984375,0 a83.9921875,14.3339021918831 0,0,0 -167.984375,0 l0,53.3339021918831 a83.9921875,14.3339021918831 0,0,0 167.984375,0 l0,-53.3339021918831" class="basic label-container outer-path" style="" transform="translate(-83.9921875, -41.00085328782465)"/><g class="label" style="" transform="translate(-76.4921875, -2)"><rect/><foreignObject width="152.984375" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>S3 Dashboard Export</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-6828b2aedde9-flowchart-s3audit-7" data-look="classic" transform="translate(937.5703125, 658.2067489624023)"><path d="M0,11.910994764397905 a56.875,11.910994764397905 0,0,0 113.75,0 a56.875,11.910994764397905 0,0,0 -113.75,0 l0,50.910994764397905 a56.875,11.910994764397905 0,0,0 113.75,0 l0,-50.910994764397905" class="basic label-container outer-path" style="" transform="translate(-56.875, -37.366492146596855)"/><g class="label" style="" transform="translate(-49.375, -2)"><rect/><foreignObject width="98.75" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>S3 Audit Logs</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-6828b2aedde9-flowchart-dashboard-8" data-look="classic" transform="translate(465.328125, 614.2067489624023)"><rect class="basic label-container" style="" x="-96.5703125" y="-27" width="193.140625" height="54"/><g class="label" style="" transform="translate(-66.5703125, -12)"><rect/><foreignObject width="133.140625" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>Dashboard Tooling</p></span></div></foreignObject></g></g></g></g></g><defs><filter id="mermaid-6828b2aedde9-drop-shadow" height="130%" width="130%"><feDropShadow dx="4" dy="4" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"/></filter></defs><defs><filter id="mermaid-6828b2aedde9-drop-shadow-small" height="150%" width="150%"><feDropShadow dx="2" dy="2" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"/></filter></defs><linearGradient id="mermaid-6828b2aedde9-gradient" gradientUnits="objectBoundingBox" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#f2b199" stop-opacity="1"/><stop offset="100%" stop-color="hsl(20.8695652174, 60%, 85.4901960784%)" stop-opacity="1"/></linearGradient></svg><details><summary>Mermaid source</summary><pre><code>flowchart LR
+    user[&quot;User&quot;]
+    portal[&quot;Internal Web Portal / API&quot;]
+    bedrock[&quot;Amazon Bedrock Runtime&quot;]
+    s3case[(&quot;S3 Case Files&quot;)]
+    s3state[(&quot;S3 Response State&quot;)]
+    s3history[(&quot;S3 Response History&quot;)]
+    s3export[(&quot;S3 Dashboard Export&quot;)]
+    s3audit[(&quot;S3 Audit Logs&quot;)]
+    dashboard[&quot;Dashboard Tooling&quot;]
+
+    user --&gt;|&quot;SSO-authenticated HTTPS&quot;| portal
+    portal --&gt;|&quot;read narrow case file&quot;| s3case
+    portal --&gt;|&quot;send narrow prompt&quot;| bedrock
+    bedrock --&gt;|&quot;draft/explain/classify only&quot;| portal
+    portal --&gt;|&quot;write current response&quot;| s3state
+    portal --&gt;|&quot;append event&quot;| s3history
+    portal --&gt;|&quot;write dashboard record&quot;| s3export
+    portal --&gt;|&quot;write audit event&quot;| s3audit
+    dashboard --&gt;|&quot;read only&quot;| s3export</code></pre></details></figure>
+<h2 id="case-file-contract">Case File Contract</h2>
+<p>The upstream report pipeline creates one case file per report item. The MVP app reads this file; it does not query raw CUR directly.</p>
+<p>Minimum case file:</p>
+<figure class="code-block"><figcaption>json</figcaption><pre><code class="language-json"><span class="syntax-punctuation">{</span>
+  <span class="syntax-key">&quot;issue_id&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;finops-2026-05-001234&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;report_id&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;monthly-cloud-report-2026-05&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;report_period&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;2026-05&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;status&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;awaiting_response&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;assigned_team&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;Payments Platform&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;assigned_product&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;Payments&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;assigned_application&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;Checkout API&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;service&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;AmazonEC2&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;cost_delta&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-number">18500.25</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;currency&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;GBP&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;summary&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;EC2 spend increased materially versus prior month.&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;detected_drivers&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-punctuation">[</span>
+    <span class="syntax-string">&quot;c7g.4xlarge running hours increased&quot;</span><span class="syntax-punctuation">,</span>
+    <span class="syntax-string">&quot;EBS gp3 usage increased&quot;</span><span class="syntax-punctuation">,</span>
+    <span class="syntax-string">&quot;Production autoscaling floor appears higher&quot;</span>
+  <span class="syntax-punctuation">]</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;allowed_responder_groups&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-punctuation">[</span>
+    <span class="syntax-string">&quot;payments-platform&quot;</span>
+  <span class="syntax-punctuation">]</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;response_due_date&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;2026-06-07&quot;</span>
+<span class="syntax-punctuation">}</span></code></pre></figure>
+<h2 id="response-types">Response Types</h2>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Type</th>
+<th class="align-left">User Intent</th>
+<th class="align-left">Final Status</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">Justification</td>
+<td class="align-left">Accept the spend and explain why</td>
+<td class="align-left"><code>justified</code></td>
+</tr>
+<tr>
+<td class="align-left">Dispute</td>
+<td class="align-left">Challenge data, amount, service, or allocation</td>
+<td class="align-left"><code>disputed</code></td>
+</tr>
+<tr>
+<td class="align-left">Reassignment request</td>
+<td class="align-left">Suggest a different owner</td>
+<td class="align-left"><code>reassignment_requested</code></td>
+</tr>
+<tr>
+<td class="align-left">Needs investigation</td>
+<td class="align-left">Cannot explain yet</td>
+<td class="align-left"><code>in_discussion</code> or <code>pending_finops_review</code></td>
+</tr>
+</tbody></table></div>
+<h2 id="response-contract">Response Contract</h2>
+<p>The backend writes one current response and one immutable history event.</p>
+<figure class="code-block"><figcaption>json</figcaption><pre><code class="language-json"><span class="syntax-punctuation">{</span>
+  <span class="syntax-key">&quot;issue_id&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;finops-2026-05-001234&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;response_id&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;resp-001&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;response_type&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;justification&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;status&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;justified&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;submitted_by&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;user@company.com&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;submitted_at&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;2026-05-21T14:30:00Z&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;justification_category&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;expected_business_growth&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;business_reason&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;Traffic increased due to new merchant onboarding.&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;technical_reason&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;Additional production capacity was required.&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;expected_to_continue&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-literal">true</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;requires_finops_review&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-literal">false</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;ai_summary&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;The team accepted the increase as expected business growth.&quot;</span>
+<span class="syntax-punctuation">}</span></code></pre></figure>
+<h2 id="dashboard-export-contract">Dashboard Export Contract</h2>
+<p>The dashboard does not need the full transcript. It needs a compact, trusted record.</p>
+<figure class="code-block"><figcaption>json</figcaption><pre><code class="language-json"><span class="syntax-punctuation">{</span>
+  <span class="syntax-key">&quot;report_period&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;2026-05&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;issue_id&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;finops-2026-05-001234&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;product&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;Payments&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;application&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;Checkout API&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;team&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;Payments Platform&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;service&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;AmazonEC2&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;cost_delta&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-number">18500.25</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;currency&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;GBP&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;status&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;justified&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;response_type&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;expected_business_growth&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;response_summary&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;Increase accepted due to merchant onboarding and higher baseline capacity.&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;submitted_by&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;user@company.com&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;submitted_at&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-string">&quot;2026-05-21T14:30:00Z&quot;</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;requires_finops_review&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-literal">false</span><span class="syntax-punctuation">,</span>
+  <span class="syntax-key">&quot;requires_catalog_update&quot;</span><span class="syntax-punctuation">:</span> <span class="syntax-literal">false</span>
+<span class="syntax-punctuation">}</span></code></pre></figure>
+<h2 id="s3-layout">S3 Layout</h2>
+<p>Use one bucket or approved bucket set. Keep prefixes explicit.</p>
+<figure class="code-block"><figcaption>text</figcaption><pre><code class="language-text">s3://&lt;bucket&gt;/case-files/report_period=2026-05/issue_id=finops-2026-05-001234.json
+s3://&lt;bucket&gt;/responses-current/report_period=2026-05/issue_id=finops-2026-05-001234.json
+s3://&lt;bucket&gt;/responses-history/report_period=2026-05/issue_id=finops-2026-05-001234/event_ts=...json
+s3://&lt;bucket&gt;/dashboard-export/report_period=2026-05/team=payments-platform/part-....json
+s3://&lt;bucket&gt;/audit/report_period=2026-05/issue_id=finops-2026-05-001234/event_ts=...json</code></pre></figure>
+<h2 id="authorisation-rule">Authorisation Rule</h2>
+<figure class="code-block"><figcaption>gherkin</figcaption><pre><code class="language-gherkin"><span class="syntax-gherkin-keyword">User</span> is authenticated
+<span class="syntax-gherkin-keyword">AND</span> user belongs to the assigned responder group OR FinOps admin group
+<span class="syntax-gherkin-keyword">AND</span> issue exists
+<span class="syntax-gherkin-keyword">AND</span> issue is open
+<span class="syntax-gherkin-keyword">AND</span> requested response type is allowed
+<span class="syntax-gherkin-keyword">AND</span> final response passes schema validation</code></pre></figure>
+<h2 id="prompt-boundary">Prompt Boundary</h2>
+<p>The model receives only:</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Context</th>
+<th class="align-left">Included</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">Issue summary</td>
+<td class="align-left">Yes</td>
+</tr>
+<tr>
+<td class="align-left">Current assignment</td>
+<td class="align-left">Yes</td>
+</tr>
+<tr>
+<td class="align-left">Detected drivers</td>
+<td class="align-left">Yes</td>
+</tr>
+<tr>
+<td class="align-left">Allowed response types</td>
+<td class="align-left">Yes</td>
+</tr>
+<tr>
+<td class="align-left">User draft response</td>
+<td class="align-left">Yes</td>
+</tr>
+<tr>
+<td class="align-left">Raw CUR</td>
+<td class="align-left">No</td>
+</tr>
+<tr>
+<td class="align-left">Other teams&#x27; issues</td>
+<td class="align-left">No</td>
+</tr>
+<tr>
+<td class="align-left">AWS write credentials</td>
+<td class="align-left">No</td>
+</tr>
+<tr>
+<td class="align-left">Catalogue write access</td>
+<td class="align-left">No</td>
+</tr>
+</tbody></table></div>
+<p>The model may return:</p>
+<ul>
+<li>Plain-English explanation.</li>
+</ul>
+<ul>
+<li>Follow-up question.</li>
+</ul>
+<ul>
+<li>Suggested response category.</li>
+</ul>
+<ul>
+<li>Draft summary.</li>
+</ul>
+<ul>
+<li>Confidence or review flag.</li>
+</ul>
+<p>The model may not:</p>
+<ul>
+<li>Submit a response without confirmation.</li>
+</ul>
+<ul>
+<li>Write S3.</li>
+</ul>
+<ul>
+<li>Change assignment directly.</li>
+</ul>
+<ul>
+<li>Claim a root cause without evidence.</li>
+</ul>
+<ul>
+<li>Access unrelated data.</li>
+</ul>
+<h2 id="minimum-aws-ask">Minimum AWS Ask</h2>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Area</th>
+<th class="align-left">MVP Ask</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">Runtime</td>
+<td class="align-left">One private ECS, Lambda, or approved internal app runtime</td>
+</tr>
+<tr>
+<td class="align-left">Auth</td>
+<td class="align-left">Enterprise SSO with email and group claims</td>
+</tr>
+<tr>
+<td class="align-left">Bedrock</td>
+<td class="align-left">Invoke one approved model in one approved region</td>
+</tr>
+<tr>
+<td class="align-left">Network</td>
+<td class="align-left">Private route to Bedrock Runtime, S3, KMS, CloudWatch Logs, Secrets Manager if used</td>
+</tr>
+<tr>
+<td class="align-left">S3 read</td>
+<td class="align-left">Case file prefix only</td>
+</tr>
+<tr>
+<td class="align-left">S3 write</td>
+<td class="align-left">Responses current/history, dashboard export, audit prefixes</td>
+</tr>
+<tr>
+<td class="align-left">KMS</td>
+<td class="align-left">Decrypt case files; encrypt/decrypt written objects</td>
+</tr>
+<tr>
+<td class="align-left">Logs</td>
+<td class="align-left">Runtime logs and business audit events</td>
+</tr>
+</tbody></table></div>
+<h2 id="mvp-success-criteria">MVP Success Criteria</h2>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Criterion</th>
+<th class="align-left">Evidence</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">User can respond to a case</td>
+<td class="align-left">Submitted response exists in S3 current prefix</td>
+</tr>
+<tr>
+<td class="align-left">Response is structured</td>
+<td class="align-left">JSON schema validation passes</td>
+</tr>
+<tr>
+<td class="align-left">Dashboard can consume output</td>
+<td class="align-left">Export record appears in dashboard prefix</td>
+</tr>
+<tr>
+<td class="align-left">AI is controlled</td>
+<td class="align-left">Bedrock has no direct S3/catalogue/AWS write path</td>
+</tr>
+<tr>
+<td class="align-left">Access is scoped</td>
+<td class="align-left">Unauthorised user cannot view or submit case</td>
+</tr>
+<tr>
+<td class="align-left">Audit is complete</td>
+<td class="align-left">View, model assist, submit, and export events exist</td>
+</tr>
+<tr>
+<td class="align-left">FinOps review is possible</td>
+<td class="align-left">Dispute and reassignment requests are visible</td>
+</tr>
+</tbody></table></div>
+<h2 id="mvp-build-order">MVP Build Order</h2>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Step</th>
+<th class="align-left">Deliverable</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">1</td>
+<td class="align-left">Case file schema and sample report item</td>
+</tr>
+<tr>
+<td class="align-left">2</td>
+<td class="align-left">SSO-protected case page</td>
+</tr>
+<tr>
+<td class="align-left">3</td>
+<td class="align-left">Backend read/authorisation path</td>
+</tr>
+<tr>
+<td class="align-left">4</td>
+<td class="align-left">Bedrock explanation and guided response draft</td>
+</tr>
+<tr>
+<td class="align-left">5</td>
+<td class="align-left">Deterministic submit endpoint</td>
+</tr>
+<tr>
+<td class="align-left">6</td>
+<td class="align-left">S3 current/history/export/audit writes</td>
+</tr>
+<tr>
+<td class="align-left">7</td>
+<td class="align-left">Dashboard reads export prefix</td>
+</tr>
+<tr>
+<td class="align-left">8</td>
+<td class="align-left">Pilot with one team and one report period</td>
+</tr>
+</tbody></table></div>
+<h2 id="final-mvp-statement">Final MVP Statement</h2>
+<p>Build one SSO-protected response portal for one report feed.</p>
+<p>Use Bedrock only to explain, ask, classify, and draft.</p>
+<p>Use deterministic backend logic for all validation, authorisation, state changes, S3 writes, and audit.</p>
+<p>Publish one dashboard-ready S3 export.</p>
+<p>Do not remediate, mutate catalogues, inspect live infrastructure, or expose broad cost data.</p>
+      </main>
+    </div>
+    <footer class="footer">
+      <span>FinOps Response Portal MVP</span>
+    </footer>
+  </article>
+</body>
+</html>

@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "render": "./render.py"
+    "render": "./render.py",
+    "render:all": "./render.py adviser.md && ./render.py mvp.md"
   },
   "devDependencies": {
     "@mermaid-js/mermaid-cli": "^11.4.2"

@@ -50,30 +50,37 @@ jobs:
         env:
           CHROME_PATH: ${{ steps.setup-chrome.outputs.chrome-path }}
           CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
-        run: ./render.py
+        run: |
+          ./render.py adviser.md
+          ./render.py mvp.md
 
       - name: Verify generated outputs
         run: |
-          test -s dist/adviser.html
-          test -s dist/adviser.pdf
-          pdfinfo dist/adviser.pdf | grep -q "Pages:"
-          ! pdfinfo dist/adviser.pdf | grep -E "CreationDate|ModDate"
-          ! pdftotext dist/adviser.pdf - | grep -E "file:///|adviser.html|[0-9]{1,2}/[0-9]{1,2}/[0-9]{2}, [0-9]{1,2}:[0-9]{2}"
+          for name in adviser mvp; do
+            test -s "dist/${name}.html"
+            test -s "dist/${name}.pdf"
+            pdfinfo "dist/${name}.pdf" | grep -q "Pages:"
+            ! pdfinfo "dist/${name}.pdf" | grep -E "CreationDate|ModDate"
+            ! pdftotext "dist/${name}.pdf" - | grep -E "file:///|${name}.html|[0-9]{1,2}/[0-9]{1,2}/[0-9]{2}, [0-9]{1,2}:[0-9]{2}"
+          done
           grep -q "syntax-key" dist/adviser.html
           grep -q "syntax-gherkin-keyword" dist/adviser.html
           grep -q "flowchart-v2" dist/adviser.html
+          grep -q "syntax-key" dist/mvp.html
+          grep -q "syntax-gherkin-keyword" dist/mvp.html
+          grep -q "flowchart-v2" dist/mvp.html
 
       - name: Copy outputs to published directory
         run: |
           mkdir -p published
-          cp dist/adviser.html published/adviser.html
-          cp dist/adviser.pdf published/adviser.pdf
+          cp dist/*.html published/
+          cp dist/*.pdf published/
 
       - name: Commit and push published outputs
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add published/adviser.html published/adviser.pdf
+          git add published/*.html published/*.pdf
           if git diff --cached --quiet; then
             echo "No published output changes to commit."
             exit 0
