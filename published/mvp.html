@@ -842,6 +842,14 @@ tbody tr:nth-child(even) {
     <div class="layout">
       <nav class="toc" aria-label="Table of contents"><h2>Contents</h2><ol><li class="toc-item"><a href="#purpose">Purpose</a></li>
 <li class="toc-item"><a href="#mvp-outcome">MVP Outcome</a></li>
+<li class="toc-item"><a href="#user-interface-model">User Interface Model</a></li>
+<li class="toc-subitem"><a href="#primary-interface-case-page">Primary Interface: Case Page</a></li>
+<li class="toc-subitem"><a href="#user-actions">User Actions</a></li>
+<li class="toc-subitem"><a href="#final-submission-flow">Final Submission Flow</a></li>
+<li class="toc-subitem"><a href="#email-interface">Email Interface</a></li>
+<li class="toc-subitem"><a href="#teams-interface">Teams Interface</a></li>
+<li class="toc-item"><a href="#interface-state-model">Interface State Model</a></li>
+<li class="toc-item"><a href="#interface-acceptance-criteria">Interface Acceptance Criteria</a></li>
 <li class="toc-item"><a href="#non-negotiable-constraint">Non-Negotiable Constraint</a></li>
 <li class="toc-item"><a href="#smallest-useful-scope">Smallest Useful Scope</a></li>
 <li class="toc-subitem"><a href="#in-scope">In Scope</a></li>
@@ -905,6 +913,330 @@ tbody tr:nth-child(even) {
 <tr>
 <td class="align-left">Clear audit trail</td>
 <td class="align-left">View, draft, submit, and export events recorded</td>
+</tr>
+</tbody></table></div>
+<h2 id="user-interface-model">User Interface Model</h2>
+<p>The MVP has one canonical user interface: an authenticated internal web case page.</p>
+<p>Email and Teams are notification and entry channels. They are not the system of record and they do not replace the case page for final review.</p>
+<figure class="code-block"><figcaption>text</figcaption><pre><code class="language-text">Email or Teams notification
+    ↓
+Secure deep link
+    ↓
+Enterprise SSO
+    ↓
+Case-specific web page
+    ↓
+Guided AI-assisted response
+    ↓
+Explicit user confirmation
+    ↓
+Backend writes S3-backed response/export/audit</code></pre></figure>
+<h3 id="primary-interface-case-page">Primary Interface: Case Page</h3>
+<p>The user interacts with a single case page for one report item.</p>
+<p>The page must make three things obvious immediately:</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Question</th>
+<th class="align-left">UI Answer</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">What is this issue?</td>
+<td class="align-left">Summary, cost delta, service, period, current owner</td>
+</tr>
+<tr>
+<td class="align-left">Why did I receive it?</td>
+<td class="align-left">Assigned team/application/product and responder group</td>
+</tr>
+<tr>
+<td class="align-left">What can I do now?</td>
+<td class="align-left">Four controlled response actions</td>
+</tr>
+</tbody></table></div>
+<p>Minimum page layout:</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Area</th>
+<th class="align-left">Contents</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">Header</td>
+<td class="align-left">Issue ID, status, due date, report period</td>
+</tr>
+<tr>
+<td class="align-left">Assignment panel</td>
+<td class="align-left">Product, application, team, responder group</td>
+</tr>
+<tr>
+<td class="align-left">Cost panel</td>
+<td class="align-left">Service, cost delta, currency, detected drivers</td>
+</tr>
+<tr>
+<td class="align-left">Evidence panel</td>
+<td class="align-left">Links to source report, dashboard, change records if present</td>
+</tr>
+<tr>
+<td class="align-left">AI guidance panel</td>
+<td class="align-left">Plain-English explanation and follow-up questions</td>
+</tr>
+<tr>
+<td class="align-left">Response panel</td>
+<td class="align-left">Controlled form for justification, dispute, reassignment, or investigation</td>
+</tr>
+<tr>
+<td class="align-left">Review panel</td>
+<td class="align-left">Final structured response preview before submission</td>
+</tr>
+<tr>
+<td class="align-left">Audit strip</td>
+<td class="align-left">Last updated, submitted by, current state</td>
+</tr>
+</tbody></table></div>
+<p>The page is not a general chatbot. It is a guided response workspace for one authorised case.</p>
+<h3 id="user-actions">User Actions</h3>
+<p>The user gets four primary actions.</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Action</th>
+<th class="align-left">UI Pattern</th>
+<th class="align-left">Backend Result</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">Provide justification</td>
+<td class="align-left">Guided form with AI-assisted drafting</td>
+<td class="align-left"><code>justified</code> response written</td>
+</tr>
+<tr>
+<td class="align-left">Dispute issue</td>
+<td class="align-left">Structured challenge reason and notes</td>
+<td class="align-left"><code>disputed</code> response written</td>
+</tr>
+<tr>
+<td class="align-left">Request reassignment</td>
+<td class="align-left">Proposed owner/application/team fields</td>
+<td class="align-left"><code>reassignment_requested</code> response written</td>
+</tr>
+<tr>
+<td class="align-left">Mark needs investigation</td>
+<td class="align-left">Reason and optional next step</td>
+<td class="align-left">investigation state written</td>
+</tr>
+</tbody></table></div>
+<p>Secondary actions:</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Action</th>
+<th class="align-left">MVP Behaviour</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">Ask for explanation</td>
+<td class="align-left">AI explains the current case file only</td>
+</tr>
+<tr>
+<td class="align-left">Improve wording</td>
+<td class="align-left">AI drafts clearer finance-friendly wording</td>
+</tr>
+<tr>
+<td class="align-left">Classify response</td>
+<td class="align-left">AI suggests controlled category; user confirms</td>
+</tr>
+<tr>
+<td class="align-left">Attach evidence link</td>
+<td class="align-left">User adds URL/reference metadata; backend validates shape</td>
+</tr>
+<tr>
+<td class="align-left">Cancel</td>
+<td class="align-left">No response write; audit may record view/session only</td>
+</tr>
+</tbody></table></div>
+<h3 id="final-submission-flow">Final Submission Flow</h3>
+<p>Every final response follows the same pattern.</p>
+<figure class="mermaid-diagram"><svg id="mermaid-0cbe6bfc610e" width="100%" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="mermaid-svg flowchart" style="max-width: 276px; background-color: transparent;" viewBox="0 0 276 754" role="graphics-document document" aria-roledescription="flowchart-v2"><style>#mermaid-0cbe6bfc610e{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:16px;fill:#0d3448;}@keyframes edge-animation-frame{from{stroke-dashoffset:0;}}@keyframes dash{to{stroke-dashoffset:0;}}#mermaid-0cbe6bfc610e .edge-animation-slow{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 50s linear infinite;stroke-linecap:round;}#mermaid-0cbe6bfc610e .edge-animation-fast{stroke-dasharray:9,5!important;stroke-dashoffset:900;animation:dash 20s linear infinite;stroke-linecap:round;}#mermaid-0cbe6bfc610e .error-icon{fill:#f7fbfc;}#mermaid-0cbe6bfc610e .error-text{fill:#080403;stroke:#080403;}#mermaid-0cbe6bfc610e .edge-thickness-normal{stroke-width:1px;}#mermaid-0cbe6bfc610e .edge-thickness-thick{stroke-width:3.5px;}#mermaid-0cbe6bfc610e .edge-pattern-solid{stroke-dasharray:0;}#mermaid-0cbe6bfc610e .edge-thickness-invisible{stroke-width:0;fill:none;}#mermaid-0cbe6bfc610e .edge-pattern-dashed{stroke-dasharray:3;}#mermaid-0cbe6bfc610e .edge-pattern-dotted{stroke-dasharray:2;}#mermaid-0cbe6bfc610e .marker{fill:#b83218;stroke:#b83218;}#mermaid-0cbe6bfc610e .marker.cross{stroke:#b83218;}#mermaid-0cbe6bfc610e svg{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:16px;}#mermaid-0cbe6bfc610e p{margin:0;}#mermaid-0cbe6bfc610e .label{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;color:#0d3448;}#mermaid-0cbe6bfc610e .cluster-label text{fill:#080403;}#mermaid-0cbe6bfc610e .cluster-label span{color:#080403;}#mermaid-0cbe6bfc610e .cluster-label span p{background-color:transparent;}#mermaid-0cbe6bfc610e .label text,#mermaid-0cbe6bfc610e span{fill:#0d3448;color:#0d3448;}#mermaid-0cbe6bfc610e .node rect,#mermaid-0cbe6bfc610e .node circle,#mermaid-0cbe6bfc610e .node ellipse,#mermaid-0cbe6bfc610e .node polygon,#mermaid-0cbe6bfc610e .node path{fill:#ffffff;stroke:#f2b199;stroke-width:1px;}#mermaid-0cbe6bfc610e .rough-node .label text,#mermaid-0cbe6bfc610e .node .label text,#mermaid-0cbe6bfc610e .image-shape .label,#mermaid-0cbe6bfc610e .icon-shape .label{text-anchor:middle;}#mermaid-0cbe6bfc610e .node .katex path{fill:#000;stroke:#000;stroke-width:1px;}#mermaid-0cbe6bfc610e .rough-node .label,#mermaid-0cbe6bfc610e .node .label,#mermaid-0cbe6bfc610e .image-shape .label,#mermaid-0cbe6bfc610e .icon-shape .label{text-align:center;}#mermaid-0cbe6bfc610e .node.clickable{cursor:pointer;}#mermaid-0cbe6bfc610e .root .anchor path{fill:#b83218!important;stroke-width:0;stroke:#b83218;}#mermaid-0cbe6bfc610e .arrowheadPath{fill:#0b0b0b;}#mermaid-0cbe6bfc610e .edgePath .path{stroke:#b83218;stroke-width:1px;}#mermaid-0cbe6bfc610e .flowchart-link{stroke:#b83218;fill:none;}#mermaid-0cbe6bfc610e .edgeLabel{background-color:#ffffff;text-align:center;}#mermaid-0cbe6bfc610e .edgeLabel p{background-color:#ffffff;}#mermaid-0cbe6bfc610e .edgeLabel rect{opacity:0.5;background-color:#ffffff;fill:#ffffff;}#mermaid-0cbe6bfc610e .labelBkg{background-color:rgba(255, 255, 255, 0.5);}#mermaid-0cbe6bfc610e .cluster rect{fill:#f7fbfc;stroke:#f2b199;stroke-width:1px;}#mermaid-0cbe6bfc610e .cluster text{fill:#080403;}#mermaid-0cbe6bfc610e .cluster span{color:#080403;}#mermaid-0cbe6bfc610e div.mermaidTooltip{position:absolute;text-align:center;max-width:200px;padding:2px;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:12px;background:#f7fbfc;border:1px solid hsl(192, 5.4545454545%, 87.8431372549%);border-radius:2px;pointer-events:none;z-index:100;}#mermaid-0cbe6bfc610e .flowchartTitleText{text-anchor:middle;font-size:18px;fill:#0d3448;}#mermaid-0cbe6bfc610e rect.text{fill:none;stroke-width:0;}#mermaid-0cbe6bfc610e .icon-shape,#mermaid-0cbe6bfc610e .image-shape{background-color:#ffffff;text-align:center;}#mermaid-0cbe6bfc610e .icon-shape p,#mermaid-0cbe6bfc610e .image-shape p{background-color:#ffffff;padding:2px;}#mermaid-0cbe6bfc610e .icon-shape .label rect,#mermaid-0cbe6bfc610e .image-shape .label rect{opacity:0.5;background-color:#ffffff;fill:#ffffff;}#mermaid-0cbe6bfc610e .label-icon{display:inline-block;height:1em;overflow:visible;vertical-align:-0.125em;}#mermaid-0cbe6bfc610e .node .label-icon path{fill:currentColor;stroke:revert;stroke-width:revert;}#mermaid-0cbe6bfc610e .node .neo-node{stroke:#f2b199;}#mermaid-0cbe6bfc610e [data-look="neo"].node rect,#mermaid-0cbe6bfc610e [data-look="neo"].cluster rect,#mermaid-0cbe6bfc610e [data-look="neo"].node polygon{stroke:url(#mermaid-0cbe6bfc610e-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-0cbe6bfc610e [data-look="neo"].node path{stroke:url(#mermaid-0cbe6bfc610e-gradient);stroke-width:1px;}#mermaid-0cbe6bfc610e [data-look="neo"].node .outer-path{filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-0cbe6bfc610e [data-look="neo"].node .neo-line path{stroke:#f2b199;filter:none;}#mermaid-0cbe6bfc610e [data-look="neo"].node circle{stroke:url(#mermaid-0cbe6bfc610e-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-0cbe6bfc610e [data-look="neo"].node circle .state-start{fill:#000000;}#mermaid-0cbe6bfc610e [data-look="neo"].icon-shape .icon{fill:url(#mermaid-0cbe6bfc610e-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-0cbe6bfc610e [data-look="neo"].icon-shape .icon-neo path{stroke:url(#mermaid-0cbe6bfc610e-gradient);filter:drop-shadow( 1px 2px 2px rgba(185,185,185,1));}#mermaid-0cbe6bfc610e :root{--mermaid-font-family:"trebuchet ms",verdana,arial,sans-serif;}</style><g><marker id="mermaid-0cbe6bfc610e_flowchart-v2-pointEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 0 L 10 5 L 0 10 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-0cbe6bfc610e_flowchart-v2-pointStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="4.5" refY="5" markerUnits="userSpaceOnUse" markerWidth="8" markerHeight="8" orient="auto"><path d="M 0 5 L 10 10 L 10 0 z" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-0cbe6bfc610e_flowchart-v2-pointEnd-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="11.5" refY="7" markerUnits="userSpaceOnUse" markerWidth="10.5" markerHeight="14" orient="auto"><path d="M 0 0 L 11.5 7 L 0 14 z" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-0cbe6bfc610e_flowchart-v2-pointStart-margin" class="marker flowchart-v2" viewBox="0 0 11.5 14" refX="1" refY="7" markerUnits="userSpaceOnUse" markerWidth="11.5" markerHeight="14" orient="auto"><polygon points="0,7 11.5,14 11.5,0" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-0cbe6bfc610e_flowchart-v2-circleEnd" class="marker flowchart-v2" viewBox="0 0 10 10" refX="11" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-0cbe6bfc610e_flowchart-v2-circleStart" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-1" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 1; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-0cbe6bfc610e_flowchart-v2-circleEnd-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refY="5" refX="12.25" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-0cbe6bfc610e_flowchart-v2-circleStart-margin" class="marker flowchart-v2" viewBox="0 0 10 10" refX="-2" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto"><circle cx="5" cy="5" r="5" class="arrowMarkerPath" style="stroke-width: 0; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-0cbe6bfc610e_flowchart-v2-crossEnd" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="12" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-0cbe6bfc610e_flowchart-v2-crossStart" class="marker cross flowchart-v2" viewBox="0 0 11 11" refX="-1" refY="5.2" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path d="M 1,1 l 9,9 M 10,1 l -9,9" class="arrowMarkerPath" style="stroke-width: 2; stroke-dasharray: 1, 0;"/></marker><marker id="mermaid-0cbe6bfc610e_flowchart-v2-crossEnd-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="17.7" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5;"/></marker><marker id="mermaid-0cbe6bfc610e_flowchart-v2-crossStart-margin" class="marker cross flowchart-v2" viewBox="0 0 15 15" refX="-3.5" refY="7.5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path d="M 1,1 L 14,14 M 1,14 L 14,1" class="arrowMarkerPath" style="stroke-width: 2.5; stroke-dasharray: 1, 0;"/></marker><g class="root"><g class="clusters"/><g class="edgePaths"><path d="M138,86L138,90.5C138,95,138,104,138,112.333C138,120.667,138,128.333,138,132.167L138,136" id="mermaid-0cbe6bfc610e-L_draft_preview_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_draft_preview_0" data-points="W3sieCI6MTM4LCJ5Ijo4Nn0seyJ4IjoxMzgsInkiOjExM30seyJ4IjoxMzgsInkiOjE0MH1d" data-look="classic" marker-end="url(#mermaid-0cbe6bfc610e_flowchart-v2-pointEnd)"/><path d="M138,218L138,222.5C138,227,138,236,138,244.333C138,252.667,138,260.333,138,264.167L138,268" id="mermaid-0cbe6bfc610e-L_preview_confirm_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_preview_confirm_0" data-points="W3sieCI6MTM4LCJ5IjoyMTh9LHsieCI6MTM4LCJ5IjoyNDV9LHsieCI6MTM4LCJ5IjoyNzJ9XQ==" data-look="classic" marker-end="url(#mermaid-0cbe6bfc610e_flowchart-v2-pointEnd)"/><path d="M138,350L138,354.5C138,359,138,368,138,376.333C138,384.667,138,392.333,138,396.167L138,400" id="mermaid-0cbe6bfc610e-L_confirm_validate_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_confirm_validate_0" data-points="W3sieCI6MTM4LCJ5IjozNTB9LHsieCI6MTM4LCJ5IjozNzd9LHsieCI6MTM4LCJ5Ijo0MDR9XQ==" data-look="classic" marker-end="url(#mermaid-0cbe6bfc610e_flowchart-v2-pointEnd)"/><path d="M138,482L138,486.5C138,491,138,500,138,508.333C138,516.667,138,524.333,138,528.167L138,532" id="mermaid-0cbe6bfc610e-L_validate_write_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_validate_write_0" data-points="W3sieCI6MTM4LCJ5Ijo0ODJ9LHsieCI6MTM4LCJ5Ijo1MDl9LHsieCI6MTM4LCJ5Ijo1MzZ9XQ==" data-look="classic" marker-end="url(#mermaid-0cbe6bfc610e_flowchart-v2-pointEnd)"/><path d="M138,638L138,642.5C138,647,138,656,138,664.333C138,672.667,138,680.333,138,684.167L138,688" id="mermaid-0cbe6bfc610e-L_write_done_0" class="edge-thickness-normal edge-pattern-solid edge-thickness-normal edge-pattern-solid flowchart-link" style=";" data-edge="true" data-et="edge" data-id="L_write_done_0" data-points="W3sieCI6MTM4LCJ5Ijo2Mzh9LHsieCI6MTM4LCJ5Ijo2NjV9LHsieCI6MTM4LCJ5Ijo2OTJ9XQ==" data-look="classic" marker-end="url(#mermaid-0cbe6bfc610e_flowchart-v2-pointEnd)"/></g><g class="edgeLabels"><g class="edgeLabel"><g class="label" data-id="L_draft_preview_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_preview_confirm_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_confirm_validate_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_validate_write_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g><g class="edgeLabel"><g class="label" data-id="L_write_done_0" transform="translate(0, 0)"><foreignObject width="0" height="0"><div xmlns="http://www.w3.org/1999/xhtml" class="labelBkg" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="edgeLabel"></span></div></foreignObject></g></g></g><g class="nodes"><g class="node default" id="mermaid-0cbe6bfc610e-flowchart-draft-0" data-look="classic" transform="translate(138, 47)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"/><g class="label" style="" transform="translate(-100, -24)"><rect/><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>User drafts or accepts AI-assisted response</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-0cbe6bfc610e-flowchart-preview-1" data-look="classic" transform="translate(138, 179)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"/><g class="label" style="" transform="translate(-100, -24)"><rect/><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>UI shows structured response preview</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-0cbe6bfc610e-flowchart-confirm-2" data-look="classic" transform="translate(138, 311)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"/><g class="label" style="" transform="translate(-100, -24)"><rect/><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>User clicks Submit response</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-0cbe6bfc610e-flowchart-validate-3" data-look="classic" transform="translate(138, 443)"><rect class="basic label-container" style="" x="-130" y="-39" width="260" height="78"/><g class="label" style="" transform="translate(-100, -24)"><rect/><foreignObject width="200" height="48"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>Backend validates schema and authorisation</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-0cbe6bfc610e-flowchart-write-4" data-look="classic" transform="translate(138, 587)"><rect class="basic label-container" style="" x="-130" y="-51" width="260" height="102"/><g class="label" style="" transform="translate(-100, -36)"><rect/><foreignObject width="200" height="72"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table; white-space: break-spaces; line-height: 1.5; max-width: 200px; text-align: center; width: 200px;"><span class="nodeLabel"><p>Backend writes current response, history, export, audit</p></span></div></foreignObject></g></g><g class="node default" id="mermaid-0cbe6bfc610e-flowchart-done-5" data-look="classic" transform="translate(138, 719)"><rect class="basic label-container" style="" x="-123.375" y="-27" width="246.75" height="54"/><g class="label" style="" transform="translate(-93.375, -12)"><rect/><foreignObject width="186.75" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="display: table-cell; white-space: nowrap; line-height: 1.5; max-width: 200px; text-align: center;"><span class="nodeLabel"><p>UI shows submitted status</p></span></div></foreignObject></g></g></g></g></g><defs><filter id="mermaid-0cbe6bfc610e-drop-shadow" height="130%" width="130%"><feDropShadow dx="4" dy="4" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"/></filter></defs><defs><filter id="mermaid-0cbe6bfc610e-drop-shadow-small" height="150%" width="150%"><feDropShadow dx="2" dy="2" stdDeviation="0" flood-opacity="0.06" flood-color="#000000"/></filter></defs><linearGradient id="mermaid-0cbe6bfc610e-gradient" gradientUnits="objectBoundingBox" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#f2b199" stop-opacity="1"/><stop offset="100%" stop-color="hsl(20.8695652174, 60%, 85.4901960784%)" stop-opacity="1"/></linearGradient></svg><details><summary>Mermaid source</summary><pre><code>flowchart TD
+    draft[&quot;User drafts or accepts AI-assisted response&quot;]
+    preview[&quot;UI shows structured response preview&quot;]
+    confirm[&quot;User clicks Submit response&quot;]
+    validate[&quot;Backend validates schema and authorisation&quot;]
+    write[&quot;Backend writes current response, history, export, audit&quot;]
+    done[&quot;UI shows submitted status&quot;]
+
+    draft --&gt; preview --&gt; confirm --&gt; validate --&gt; write --&gt; done</code></pre></details></figure>
+<p>There is no hidden model action after the user clicks submit. The backend writes only the reviewed structured response.</p>
+<h3 id="email-interface">Email Interface</h3>
+<p>Email is used for notification only.</p>
+<p>Minimum email content:</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Field</th>
+<th class="align-left">Example</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">Subject</td>
+<td class="align-left"><code>FinOps response required: Checkout API EC2 increase</code></td>
+</tr>
+<tr>
+<td class="align-left">Issue summary</td>
+<td class="align-left"><code>EC2 spend increased by £18.5k for May 2026</code></td>
+</tr>
+<tr>
+<td class="align-left">Assigned owner</td>
+<td class="align-left"><code>Payments / Checkout API / Payments Platform</code></td>
+</tr>
+<tr>
+<td class="align-left">Due date</td>
+<td class="align-left"><code>2026-06-07</code></td>
+</tr>
+<tr>
+<td class="align-left">Action link</td>
+<td class="align-left"><code>Open response case</code></td>
+</tr>
+</tbody></table></div>
+<p>The email link contains report ID and issue ID only. It does not grant access by itself.</p>
+<figure class="code-block"><figcaption>text</figcaption><pre><code class="language-text">https://finops-response.internal.company/report/monthly-2026-05/issue/finops-2026-05-001234</code></pre></figure>
+<h3 id="teams-interface">Teams Interface</h3>
+<p>Teams can be added in the MVP if the organisation already supports Teams app/bot deployment. It should still call the same backend API.</p>
+<p>Recommended Teams scope:</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Teams Feature</th>
+<th class="align-left">MVP Use</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">Bot notification</td>
+<td class="align-left">Tell assigned team a response is required</td>
+</tr>
+<tr>
+<td class="align-left">Adaptive Card</td>
+<td class="align-left">Show summary, due date, status, and action buttons</td>
+</tr>
+<tr>
+<td class="align-left">Open case button</td>
+<td class="align-left">Deep link to the authenticated web case page</td>
+</tr>
+<tr>
+<td class="align-left">Reminder message</td>
+<td class="align-left">Notify before due date or when status changes</td>
+</tr>
+<tr>
+<td class="align-left">Lightweight response</td>
+<td class="align-left">Optional for simple <code>needs investigation</code> or short justification</td>
+</tr>
+</tbody></table></div>
+<p>Teams should not be the only interface for complex responses. Complex justification, disputes, reassignment, and evidence review should open the case page.</p>
+<p>Teams card actions:</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Button</th>
+<th class="align-left">Behaviour</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">Open case</td>
+<td class="align-left">Opens the canonical web page</td>
+</tr>
+<tr>
+<td class="align-left">Ask AI to explain</td>
+<td class="align-left">Calls backend; returns case-scoped explanation</td>
+</tr>
+<tr>
+<td class="align-left">Mark needs investigation</td>
+<td class="align-left">Opens confirmation or case page</td>
+</tr>
+<tr>
+<td class="align-left">Request reassignment</td>
+<td class="align-left">Opens case page with reassignment action selected</td>
+</tr>
+</tbody></table></div>
+<p>The safe pattern is:</p>
+<figure class="code-block"><figcaption>text</figcaption><pre><code class="language-text">Teams Bot / Adaptive Card
+    ↓
+Authenticated backend API
+    ↓
+Same authorisation and validation as web
+    ↓
+Same S3-backed writes and audit trail</code></pre></figure>
+<h2 id="interface-state-model">Interface State Model</h2>
+<p>The case page should expose state clearly.</p>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">UI State</th>
+<th class="align-left">Meaning</th>
+<th class="align-left">User Experience</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">Awaiting response</td>
+<td class="align-left">No final response submitted</td>
+<td class="align-left">Primary actions enabled</td>
+</tr>
+<tr>
+<td class="align-left">In discussion</td>
+<td class="align-left">User has started but not submitted</td>
+<td class="align-left">Draft visible, submit still required</td>
+</tr>
+<tr>
+<td class="align-left">Submitted</td>
+<td class="align-left">Final response written</td>
+<td class="align-left">Read-only summary plus audit details</td>
+</tr>
+<tr>
+<td class="align-left">Pending FinOps review</td>
+<td class="align-left">Dispute or unclear response needs review</td>
+<td class="align-left">User sees review state</td>
+</tr>
+<tr>
+<td class="align-left">Reassignment requested</td>
+<td class="align-left">Proposed new owner captured</td>
+<td class="align-left">User sees pending approval</td>
+</tr>
+<tr>
+<td class="align-left">Closed</td>
+<td class="align-left">No further action needed</td>
+<td class="align-left">Read-only</td>
+</tr>
+</tbody></table></div>
+<h2 id="interface-acceptance-criteria">Interface Acceptance Criteria</h2>
+<div class="table-wrap"><table>
+<thead><tr>
+<th class="align-left">Requirement</th>
+<th class="align-left">Acceptance Test</th>
+</tr></thead>
+<tbody>
+<tr>
+<td class="align-left">User understands why they received the case</td>
+<td class="align-left">Case page shows current assignment and responder group</td>
+</tr>
+<tr>
+<td class="align-left">User understands the financial issue</td>
+<td class="align-left">Case page shows period, service, cost delta, and drivers</td>
+</tr>
+<tr>
+<td class="align-left">User can act without free-form email</td>
+<td class="align-left">Four controlled response actions are available</td>
+</tr>
+<tr>
+<td class="align-left">User can review before submit</td>
+<td class="align-left">UI shows structured preview before final write</td>
+</tr>
+<tr>
+<td class="align-left">AI assistance is bounded</td>
+<td class="align-left">AI panel only references current case context</td>
+</tr>
+<tr>
+<td class="align-left">Teams/email are not security boundaries</td>
+<td class="align-left">Opening a link still requires SSO and backend authz</td>
+</tr>
+<tr>
+<td class="align-left">Dashboard data is produced</td>
+<td class="align-left">Submit creates dashboard export record</td>
+</tr>
+<tr>
+<td class="align-left">Audit is complete</td>
+<td class="align-left">View, assist, submit, and write events are recorded</td>
 </tr>
 </tbody></table></div>
 <h2 id="non-negotiable-constraint">Non-Negotiable Constraint</h2>

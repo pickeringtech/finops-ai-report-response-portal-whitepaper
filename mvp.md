@@ -27,6 +27,177 @@ The value is:
 | Safer AI adoption | Bedrock only assists; backend owns all writes |
 | Clear audit trail | View, draft, submit, and export events recorded |
 
+## User Interface Model
+
+The MVP has one canonical user interface: an authenticated internal web case page.
+
+Email and Teams are notification and entry channels. They are not the system of record and they do not replace the case page for final review.
+
+```text
+Email or Teams notification
+    ↓
+Secure deep link
+    ↓
+Enterprise SSO
+    ↓
+Case-specific web page
+    ↓
+Guided AI-assisted response
+    ↓
+Explicit user confirmation
+    ↓
+Backend writes S3-backed response/export/audit
+```
+
+### Primary Interface: Case Page
+
+The user interacts with a single case page for one report item.
+
+The page must make three things obvious immediately:
+
+| Question | UI Answer |
+| --- | --- |
+| What is this issue? | Summary, cost delta, service, period, current owner |
+| Why did I receive it? | Assigned team/application/product and responder group |
+| What can I do now? | Four controlled response actions |
+
+Minimum page layout:
+
+| Area | Contents |
+| --- | --- |
+| Header | Issue ID, status, due date, report period |
+| Assignment panel | Product, application, team, responder group |
+| Cost panel | Service, cost delta, currency, detected drivers |
+| Evidence panel | Links to source report, dashboard, change records if present |
+| AI guidance panel | Plain-English explanation and follow-up questions |
+| Response panel | Controlled form for justification, dispute, reassignment, or investigation |
+| Review panel | Final structured response preview before submission |
+| Audit strip | Last updated, submitted by, current state |
+
+The page is not a general chatbot. It is a guided response workspace for one authorised case.
+
+### User Actions
+
+The user gets four primary actions.
+
+| Action | UI Pattern | Backend Result |
+| --- | --- | --- |
+| Provide justification | Guided form with AI-assisted drafting | `justified` response written |
+| Dispute issue | Structured challenge reason and notes | `disputed` response written |
+| Request reassignment | Proposed owner/application/team fields | `reassignment_requested` response written |
+| Mark needs investigation | Reason and optional next step | investigation state written |
+
+Secondary actions:
+
+| Action | MVP Behaviour |
+| --- | --- |
+| Ask for explanation | AI explains the current case file only |
+| Improve wording | AI drafts clearer finance-friendly wording |
+| Classify response | AI suggests controlled category; user confirms |
+| Attach evidence link | User adds URL/reference metadata; backend validates shape |
+| Cancel | No response write; audit may record view/session only |
+
+### Final Submission Flow
+
+Every final response follows the same pattern.
+
+```mermaid
+flowchart TD
+    draft["User drafts or accepts AI-assisted response"]
+    preview["UI shows structured response preview"]
+    confirm["User clicks Submit response"]
+    validate["Backend validates schema and authorisation"]
+    write["Backend writes current response, history, export, audit"]
+    done["UI shows submitted status"]
+
+    draft --> preview --> confirm --> validate --> write --> done
+```
+
+There is no hidden model action after the user clicks submit. The backend writes only the reviewed structured response.
+
+### Email Interface
+
+Email is used for notification only.
+
+Minimum email content:
+
+| Field | Example |
+| --- | --- |
+| Subject | `FinOps response required: Checkout API EC2 increase` |
+| Issue summary | `EC2 spend increased by £18.5k for May 2026` |
+| Assigned owner | `Payments / Checkout API / Payments Platform` |
+| Due date | `2026-06-07` |
+| Action link | `Open response case` |
+
+The email link contains report ID and issue ID only. It does not grant access by itself.
+
+```text
+https://finops-response.internal.company/report/monthly-2026-05/issue/finops-2026-05-001234
+```
+
+### Teams Interface
+
+Teams can be added in the MVP if the organisation already supports Teams app/bot deployment. It should still call the same backend API.
+
+Recommended Teams scope:
+
+| Teams Feature | MVP Use |
+| --- | --- |
+| Bot notification | Tell assigned team a response is required |
+| Adaptive Card | Show summary, due date, status, and action buttons |
+| Open case button | Deep link to the authenticated web case page |
+| Reminder message | Notify before due date or when status changes |
+| Lightweight response | Optional for simple `needs investigation` or short justification |
+
+Teams should not be the only interface for complex responses. Complex justification, disputes, reassignment, and evidence review should open the case page.
+
+Teams card actions:
+
+| Button | Behaviour |
+| --- | --- |
+| Open case | Opens the canonical web page |
+| Ask AI to explain | Calls backend; returns case-scoped explanation |
+| Mark needs investigation | Opens confirmation or case page |
+| Request reassignment | Opens case page with reassignment action selected |
+
+The safe pattern is:
+
+```text
+Teams Bot / Adaptive Card
+    ↓
+Authenticated backend API
+    ↓
+Same authorisation and validation as web
+    ↓
+Same S3-backed writes and audit trail
+```
+
+## Interface State Model
+
+The case page should expose state clearly.
+
+| UI State | Meaning | User Experience |
+| --- | --- | --- |
+| Awaiting response | No final response submitted | Primary actions enabled |
+| In discussion | User has started but not submitted | Draft visible, submit still required |
+| Submitted | Final response written | Read-only summary plus audit details |
+| Pending FinOps review | Dispute or unclear response needs review | User sees review state |
+| Reassignment requested | Proposed new owner captured | User sees pending approval |
+| Closed | No further action needed | Read-only |
+
+## Interface Acceptance Criteria
+
+| Requirement | Acceptance Test |
+| --- | --- |
+| User understands why they received the case | Case page shows current assignment and responder group |
+| User understands the financial issue | Case page shows period, service, cost delta, and drivers |
+| User can act without free-form email | Four controlled response actions are available |
+| User can review before submit | UI shows structured preview before final write |
+| AI assistance is bounded | AI panel only references current case context |
+| Teams/email are not security boundaries | Opening a link still requires SSO and backend authz |
+| Dashboard data is produced | Submit creates dashboard export record |
+| Audit is complete | View, assist, submit, and write events are recorded |
+
 ## Non-Negotiable Constraint
 
 The model is not the system of record and does not write to AWS services.
